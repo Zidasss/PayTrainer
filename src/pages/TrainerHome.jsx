@@ -1,0 +1,192 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase, callStripe } from '../lib/supabase';
+import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2 } from 'lucide-react';
+
+export default function TrainerHome() {
+  const { profile } = useAuth();
+  const nav = useNavigate();
+  const [stats, setStats] = useState({ students: 0, revenue: 0, today: 0 });
+  const [todayBookings, setTodayBookings] = useState([]);
+  const [unpaidCount, setUnpaidCount] = useState(0);
+  const [pendingLocations, setPendingLocations] = useState([]);
+  const [stripeReady, setStripeReady] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+
+  useEffect(() => { loadData(); }, []);
+
+  async function loadData() {
+    const trainerId = profile.id;
+
+    // Check Stripe
+    const { data: trainer } = await supabase
+      .from('trainers')
+      .select('stripe_onboarding_complete')
+      .eq('id', trainerId).single();
+    setStripeReady(trainer?.stripe_onboarding_complete || false);
+
+    // Active subscriptions
+    const { data: subs } = await supabase
+      .from('subscriptions')
+      .select('*, plans(*), profiles!subscriptions_student_id_fkey(full_name)')
+      .eq('trainer_id', trainerId);
+
+    const activeSubs = (subs || []).filter(s => s.status === 'active');
+    const pastDue = (subs || []).filter(s => s.status === 'past_due');
+    setUnpaidCount(pastDue.length);
+
+    const revenue = activeSubs.reduce((sum, s) => sum + (s.plans?.price_cents || 0), 0);
+
+    // Today's bookings
+    const today = new Date().toISOString().split('T')[0];
+    const { data: bk } = await supabase
+      .from('bookings')
+      .select('*, profiles!bookings_student_id_fkey(full_name)')
+      .eq('trainer_id', trainerId)
+      .eq('booking_date', today)
+      .eq('status', 'confirmed')
+      .order('start_time');
+    setTodayBookings(bk || []);
+
+    setStats({ students: activeSubs.length, revenue, today: bk?.length || 0 });
+
+    // Pending location requests
+    const { data: pending } = await supabase
+      .from('bookings')
+      .select('*, profiles!bookings_student_id_fkey(full_name)')
+      .eq('trainer_id', trainerId)
+      .eq('location_status', 'pending')
+      .not('location', 'is', null)
+      .order('booking_date');
+    setPendingLocations(pending || []);
+
+    // Invite link
+    setInviteLink(`${window.location.origin}/join/${trainerId}`);
+  }
+
+  async function setupStripe() {
+    try {
+      const data = await callStripe('create_connect_account');
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      alert('Erro: ' + err.message);
+    }
+  }
+
+  async function handleLocation(bookingId, status) {
+    await supabase.from('bookings').update({ location_status: status }).eq('id', bookingId);
+    setPendingLocations(prev => prev.filter(b => b.id !== bookingId));
+  }
+
+  return (
+    <div className="page">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="animate-in">
+          <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>Olá,</p>
+          <p className="page-title">{profile?.full_name?.split(' ')[0]}</p>
+        </div>
+        <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
+      </div>
+
+      {/* Stripe setup banner */}
+      {!stripeReady && (
+        <div className="animate-in" onClick={setupStripe}
+          style={{ background: 'var(--coral-bg)', borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <AlertCircle size={20} color="var(--coral)" />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--coral)' }}>Configure o recebimento</p>
+            <p style={{ fontSize: 12, color: 'var(--sand-500)' }}>Toque para vincular sua conta e receber pagamentos</p>
+          </div>
+          <ExternalLink size={16} color="var(--coral)" />
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="animate-in delay-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <div className="stat-card">
+          <p className="stat-label">Alunos ativos</p>
+          <p className="stat-value">{stats.students}</p>
+        </div>
+        <div className="stat-card">
+          <p className="stat-label">Receita mensal</p>
+          <p className="stat-value" style={{ fontSize: 20 }}>{formatBRL(stats.revenue)}</p>
+        </div>
+      </div>
+
+      {/* Unpaid alert */}
+      {unpaidCount > 0 && (
+        <div className="animate-in delay-1" style={{ background: 'var(--coral-bg)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertCircle size={16} color="var(--coral)" />
+          <span style={{ fontSize: 13, color: 'var(--coral)' }}>{unpaidCount} aluno(s) com pagamento pendente</span>
+        </div>
+      )}
+
+      {/* Invite link */}
+      <div className="animate-in delay-2 card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Link2 size={18} color="var(--green-500)" />
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 13, fontWeight: 500 }}>Link de convite</p>
+          <p style={{ fontSize: 11, color: 'var(--sand-400)', wordBreak: 'break-all' }}>{inviteLink}</p>
+        </div>
+        <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
+          onClick={() => navigator.clipboard.writeText(inviteLink)}>
+          Copiar
+        </button>
+      </div>
+
+      {/* Today's sessions */}
+      <div className="animate-in delay-2" style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <p style={{ fontSize: 15, fontWeight: 500 }}>Hoje — {DAYS_PT[new Date().getDay()]}</p>
+          <span onClick={() => nav('/trainer/schedule')} style={{ fontSize: 13, color: 'var(--green-500)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2 }}>
+            Agenda <ChevronRight size={16} />
+          </span>
+        </div>
+
+        {todayBookings.length > 0 ? todayBookings.map(b => (
+          <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid var(--sand-100)' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: 'var(--sand-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontFamily: 'var(--font-display)', fontSize: 15 }}>
+              {b.start_time.slice(0, 5)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, fontWeight: 500 }}>{b.profiles?.full_name || 'Aluno'}</p>
+              {b.location && <p style={{ fontSize: 12, color: 'var(--sand-500)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={12} />{b.location}</p>}
+            </div>
+            {b.type === 'extra' && <span className="badge badge-blue">Extra</span>}
+          </div>
+        )) : (
+          <div className="empty-state" style={{ padding: 24 }}>
+            <p style={{ fontSize: 14 }}>Nenhuma aula hoje</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pending location requests */}
+      {pendingLocations.length > 0 && (
+        <div className="animate-in delay-3" style={{ marginTop: 20 }}>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 10 }}>Solicitações de local</p>
+          {pendingLocations.map(b => (
+            <div key={b.id} className="card">
+              <p style={{ fontSize: 14, fontWeight: 500 }}>{b.profiles?.full_name} sugere:</p>
+              <p style={{ fontSize: 13, color: 'var(--sand-500)', margin: '4px 0 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <MapPin size={14} /> {b.location} — {new Date(b.booking_date + 'T00:00:00').toLocaleDateString('pt-BR')} {b.start_time.slice(0, 5)}
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn btn-primary" style={{ flex: 1, padding: 10 }} onClick={() => handleLocation(b.id, 'approved')}>
+                  <Check size={16} /> Aceitar
+                </button>
+                <button className="btn btn-outline" style={{ flex: 1, padding: 10 }} onClick={() => handleLocation(b.id, 'rejected')}>
+                  <X size={16} /> Recusar
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <BottomNav role="trainer" />
+    </div>
+  );
+}
