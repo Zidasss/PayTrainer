@@ -206,7 +206,6 @@ serve(async (req) => {
         customer: customerId,
         mode: 'subscription',
         'payment_method_types[0]': 'card',
-        'payment_method_types[1]': 'pix',
         'line_items[0][price]': stripePriceId,
         'line_items[0][quantity]': '1',
         'subscription_data[application_fee_percent]': '5',
@@ -265,7 +264,6 @@ serve(async (req) => {
       const session = await stripe('/checkout/sessions', {
         mode: 'payment',
         'payment_method_types[0]': 'card',
-        'payment_method_types[1]': 'pix',
         'line_items[0][price_data][currency]': 'brl',
         'line_items[0][price_data][product_data][name]': 'Stride - Aula Extra',
         'line_items[0][price_data][unit_amount]': String(amount),
