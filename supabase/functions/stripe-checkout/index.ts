@@ -184,7 +184,7 @@ serve(async (req) => {
       let stripePriceId = plan.stripe_price_id;
       if (!stripePriceId) {
         const product = await stripe('/products', {
-          name: `FitAgenda - ${plan.name}`,
+          name: `Stride - ${plan.name}`,
           metadata: { plan_id: plan.id, trainer_id },
         });
 
@@ -265,7 +265,7 @@ serve(async (req) => {
         mode: 'payment',
         'payment_method_types[0]': 'card',
         'line_items[0][price_data][currency]': 'brl',
-        'line_items[0][price_data][product_data][name]': 'FitAgenda - Aula Extra',
+        'line_items[0][price_data][product_data][name]': 'Stride - Aula Extra',
         'line_items[0][price_data][unit_amount]': String(amount),
         'line_items[0][quantity]': '1',
         'payment_intent_data[application_fee_amount]': String(platformFee),
