@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL } from '../components/Shared';
-import { LogOut, MapPin, ChevronRight } from 'lucide-react';
+import { LogOut, MapPin, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function StudentProfile() {
   const { profile, signOut } = useAuth();
+  const nav = useNavigate();
   const [subscription, setSub] = useState(null);
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
@@ -71,6 +73,17 @@ export default function StudentProfile() {
         </div>
       </div>
 
+      <div className="animate-in delay-3" style={{ marginBottom: 12 }}
+          onClick={() => nav('/feedback')}>
+          <div style={{ cursor: 'pointer', padding: '16px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--sand-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <MessageSquare size={18} color="var(--sand-500)" />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 500 }}>Feedback & Suporte</p>
+              <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>Envie sugestões ou reporte problemas</p>
+            </div>
+          </div>
+        </div>
+      
       <button className="btn btn-danger animate-in delay-4" onClick={signOut}>
         <LogOut size={18} /> Sair da conta
       </button>
