@@ -122,6 +122,7 @@ export default function TrainerHome() {
             </div>
             <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
           </div>
+     </div>   
 
       {/* Stripe setup banner */}
       {!stripeReady && (

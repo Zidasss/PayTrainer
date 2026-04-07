@@ -104,6 +104,7 @@ export default function StudentHome() {
           <NotificationBell />
           <Avatar name={profile?.full_name} size="md" />
         </div>
+      </div>  
 
       {/* Locked banner */}
       {isLocked && (

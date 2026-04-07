@@ -84,30 +84,14 @@ export default function StudentSchedule() {
     return slotDate < now;
   }
 
-  async function cancelBooking(bookingId) {
-      const booking = bookings.find(b => b.id === bookingId);
-      if (!booking) return;
+async function cancelBooking(bookingId) {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
 
-      if (!canCancel(booking)) {
-        showToast('Não é possível cancelar com menos de 10h de antecedência');
-        return;
-      }
-
-      setCancelingId(bookingId);
-      try {
-        await supabase
-          .from('bookings')
-          .update({ status: 'canceled' })
-          .eq('id', bookingId);
-
-        showToast('Aula cancelada com sucesso');
-
-        await createNotification({
-          userId: subscription.trainer_id,
-          title: 'Aula cancelada',
-          message: `${profile.full_name} cancelou uma aula`,
-          type: 'warning',
-        });
+    if (!canCancel(booking)) {
+      showToast('Não é possível cancelar com menos de 10h de antecedência');
+      return;
+    }
 
     setCancelingId(bookingId);
     try {
