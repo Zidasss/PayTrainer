@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsProfileSetup, setNeedsProfileSetup] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -18,7 +19,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) fetchProfile(session.user.id);
-      else { setProfile(null); setLoading(false); }
+      else { setProfile(null); setLoading(false); setNeedsProfileSetup(false); }
     });
 
     return () => subscription.unsubscribe();
@@ -31,8 +32,35 @@ export function AuthProvider({ children }) {
       .eq('id', userId)
       .single();
 
-    setProfile(data);
+    if (data) {
+      setProfile(data);
+      setNeedsProfileSetup(false);
+    } else {
+      // OAuth user without profile - needs setup
+      setNeedsProfileSetup(true);
+      setProfile(null);
+    }
     setLoading(false);
+  }
+
+  async function setupOAuthProfile({ role, fullName, phone }) {
+    if (!session?.user) return;
+    const userId = session.user.id;
+
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: userId,
+      role,
+      full_name: fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+      phone: phone || null,
+    });
+    if (profileError) throw profileError;
+
+    if (role === 'trainer') {
+      await supabase.from('trainers').insert({ id: userId });
+    }
+
+    setNeedsProfileSetup(false);
+    await fetchProfile(userId);
   }
 
   async function signUp({ email, password, fullName, role, phone }) {
@@ -66,10 +94,14 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
     setProfile(null);
     setSession(null);
+    setNeedsProfileSetup(false);
   }
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading, signUp, signIn, signOut, fetchProfile }}>
+    <AuthContext.Provider value={{
+      session, profile, loading, needsProfileSetup,
+      signUp, signIn, signOut, fetchProfile, setupOAuthProfile
+    }}>
       {children}
     </AuthContext.Provider>
   );
