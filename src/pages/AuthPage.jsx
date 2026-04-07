@@ -182,7 +182,7 @@ export default function AuthPage() {
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
         <div className="animate-in">
-          <p className="page-title">Como deseja usar o FitAgenda?</p>
+          <p className="page-title">Como deseja usar o Stride?</p>
           <p className="page-subtitle" style={{ marginBottom: 28 }}>Selecione seu perfil</p>
         </div>
 
@@ -222,7 +222,7 @@ export default function AuthPage() {
         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--green-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Dumbbell size={28} color="white" />
         </div>
-        <p className="page-title">FitAgenda</p>
+        <p className="page-title">Stride</p>
         <p className="page-subtitle">
           {mode === 'login' ? 'Entre na sua conta' : `Crie sua conta${hasJoinRedirect ? ' de aluno' : ''}`}
         </p>

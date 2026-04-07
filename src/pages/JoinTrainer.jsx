@@ -76,7 +76,7 @@ export default function JoinTrainer() {
     if (navigator.share) {
       navigator.share({
         title: `Treine com ${trainer?.full_name}`,
-        text: `Agende suas aulas com ${trainer?.full_name} pelo FitAgenda!`,
+        text: `Agende suas aulas com ${trainer?.full_name} pelo Stride!`,
         url: window.location.href,
       }).catch(() => {});
     } else {

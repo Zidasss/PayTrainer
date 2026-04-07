@@ -7,7 +7,7 @@ export default function OnboardingTutorial({ role, onComplete }) {
   const studentSteps = [
     {
       icon: Dumbbell, color: 'var(--green-500)', bg: 'var(--green-50)',
-      title: 'Bem-vindo ao FitAgenda!',
+      title: 'Bem-vindo ao Stride!',
       desc: 'Aqui você agenda aulas com seu personal trainer, paga online e acompanha tudo em um só lugar.',
     },
     {
@@ -35,7 +35,7 @@ export default function OnboardingTutorial({ role, onComplete }) {
   const trainerSteps = [
     {
       icon: Dumbbell, color: 'var(--green-500)', bg: 'var(--green-50)',
-      title: 'Bem-vindo ao FitAgenda!',
+      title: 'Bem-vindo ao Stride!',
       desc: 'Gerencie seus alunos, agenda e pagamentos de forma simples e automatizada.',
     },
     {

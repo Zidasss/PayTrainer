@@ -29,7 +29,7 @@ export default function OAuthSetup() {
           <Dumbbell size={28} color="white" />
         </div>
         <p className="page-title">Bem-vindo, {userName}!</p>
-        <p className="page-subtitle">Como deseja usar o FitAgenda?</p>
+        <p className="page-subtitle">Como deseja usar o Stride?</p>
       </div>
 
       <div className="animate-in delay-1" onClick={() => setRole('student')}

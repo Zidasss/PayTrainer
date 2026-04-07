@@ -22,7 +22,7 @@ export default function LandingPage() {
           fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700,
           letterSpacing: -0.5, margin: '0 0 8px', color: 'var(--green-900)',
         }}>
-          FitAgenda
+          Stride
         </h1>
 
         <p className="animate-in delay-2" style={{
