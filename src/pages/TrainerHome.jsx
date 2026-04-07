@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
-import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2 } from 'lucide-react';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, LogOut, Settings } from 'lucide-react';
 
 export default function TrainerHome() {
-  const { profile } = useAuth();
+  const { profile, signOut } = useAuth();
   const nav = useNavigate();
   const [stats, setStats] = useState({ students: 0, revenue: 0, today: 0 });
   const [todayBookings, setTodayBookings] = useState([]);
@@ -14,6 +14,8 @@ export default function TrainerHome() {
   const [pendingLocations, setPendingLocations] = useState([]);
   const [stripeReady, setStripeReady] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [plansCount, setPlansCount] = useState(0);
 
   useEffect(() => { loadData(); }, []);
 
@@ -26,6 +28,14 @@ export default function TrainerHome() {
       .select('stripe_onboarding_complete')
       .eq('id', trainerId).single();
     setStripeReady(trainer?.stripe_onboarding_complete || false);
+
+    // Plans count
+    const { data: plans } = await supabase
+      .from('plans')
+      .select('id')
+      .eq('trainer_id', trainerId)
+      .eq('active', true);
+    setPlansCount(plans?.length || 0);
 
     // Active subscriptions
     const { data: subs } = await supabase
@@ -80,6 +90,12 @@ export default function TrainerHome() {
     setPendingLocations(prev => prev.filter(b => b.id !== bookingId));
   }
 
+  function copyLink() {
+    navigator.clipboard.writeText(inviteLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div className="page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -87,7 +103,12 @@ export default function TrainerHome() {
           <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>Olá,</p>
           <p className="page-title">{profile?.full_name?.split(' ')[0]}</p>
         </div>
-        <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div onClick={signOut} style={{ cursor: 'pointer', padding: 6 }}>
+            <LogOut size={20} color="var(--sand-400)" />
+          </div>
+          <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
+        </div>
       </div>
 
       {/* Stripe setup banner */}
@@ -102,6 +123,25 @@ export default function TrainerHome() {
           <ExternalLink size={16} color="var(--coral)" />
         </div>
       )}
+
+      {/* Plans setup - prominent card */}
+      <div className="animate-in delay-1 card" onClick={() => nav('/trainer/plans')}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12,
+          border: plansCount === 0 ? '2px solid var(--green-400)' : undefined,
+          background: plansCount === 0 ? 'var(--green-50)' : undefined }}>
+        <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: plansCount === 0 ? 'var(--green-100)' : 'var(--sand-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <ClipboardList size={22} color={plansCount === 0 ? 'var(--green-600)' : 'var(--sand-500)'} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 15, fontWeight: 500 }}>
+            {plansCount === 0 ? 'Crie seus planos' : 'Meus planos'}
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--sand-500)' }}>
+            {plansCount === 0 ? 'Configure os planos para seus alunos' : `${plansCount} plano(s) ativo(s)`}
+          </p>
+        </div>
+        <ChevronRight size={18} color="var(--sand-400)" />
+      </div>
 
       {/* Stats */}
       <div className="animate-in delay-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
@@ -131,8 +171,8 @@ export default function TrainerHome() {
           <p style={{ fontSize: 11, color: 'var(--sand-400)', wordBreak: 'break-all' }}>{inviteLink}</p>
         </div>
         <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
-          onClick={() => navigator.clipboard.writeText(inviteLink)}>
-          Copiar
+          onClick={copyLink}>
+          {copied ? '✓ Copiado' : 'Copiar'}
         </button>
       </div>
 
