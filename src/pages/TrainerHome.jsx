@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
-import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, LogOut, Settings } from 'lucide-react';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, LogOut, MessageSquare, Settings } from 'lucide-react';
 
 export default function TrainerHome() {
   const { profile, signOut } = useAuth();
@@ -236,7 +236,15 @@ export default function TrainerHome() {
           ))}
         </div>
       )}
-
+      <div className="animate-in delay-4" style={{ marginTop: 20 }}>
+        <div onClick={() => nav('/feedback')} className="card" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <MessageSquare size={18} color="var(--sand-500)" />
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Feedback & Suporte</p>
+            <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>Envie sugestões ou reporte problemas</p>
+          </div>
+        </div>
+      </div>
       <BottomNav role="trainer" />
     </div>
   );

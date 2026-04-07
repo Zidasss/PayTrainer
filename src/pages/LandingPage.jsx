@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Dumbbell, CalendarDays, CreditCard, Clock, ChevronRight, Star } from 'lucide-react';
+import { CalendarDays, CreditCard, Clock, ChevronRight, Star } from 'lucide-react';
 
 export default function LandingPage() {
   const nav = useNavigate();
@@ -15,7 +15,9 @@ export default function LandingPage() {
           width: 72, height: 72, borderRadius: 'var(--radius-xl)', background: 'var(--green-500)',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20,
         }}>
-          <Dumbbell size={36} color="white" />
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+            <path d="M6 4v16m12-16v16M2 8h4m12 0h4M2 16h4m12 0h4"/>
+          </svg>
         </div>
 
         <h1 className="animate-in delay-1" style={{
@@ -89,7 +91,7 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* For trainers section */}
+      {/* For trainers */}
       <div style={{
         margin: '0 24px', padding: '24px 20px', borderRadius: 'var(--radius-lg)',
         background: 'var(--sand-50)', marginBottom: 24,
@@ -111,13 +113,31 @@ export default function LandingPage() {
       </div>
 
       {/* CTA */}
-      <div style={{ padding: '0 24px 40px', textAlign: 'center' }}>
+      <div style={{ padding: '0 24px 24px', textAlign: 'center' }}>
         <button className="btn btn-primary" onClick={() => nav('/auth?mode=signup')} style={{ marginBottom: 12 }}>
           Criar conta gratuita
         </button>
         <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>
           Sem taxas de cadastro. Sem compromisso.
         </p>
+      </div>
+
+      {/* Footer with Cloudhead branding */}
+      <div style={{
+        padding: '20px 24px 32px', borderTop: '1px solid var(--sand-100)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+      }}>
+        <svg width="20" height="20" viewBox="0 0 100 100" style={{ borderRadius: '50%' }}>
+          <circle cx="50" cy="50" r="50" fill="#1a1a1a"/>
+          <ellipse cx="50" cy="58" rx="28" ry="24" fill="white" stroke="#1a1a1a" strokeWidth="3"/>
+          <ellipse cx="50" cy="30" rx="22" ry="18" fill="#1a1a1a"/>
+          <ellipse cx="62" cy="22" rx="12" ry="10" fill="#1a1a1a"/>
+          <circle cx="68" cy="16" r="4" fill="#1a1a1a"/>
+          <circle cx="42" cy="54" r="3.5" fill="#1a1a1a"/>
+          <path d="M 38 62 Q 44 67 48 62" stroke="#1a1a1a" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+          <ellipse cx="66" cy="56" rx="5" ry="4.5" fill="#1a1a1a" transform="rotate(-10 66 56)"/>
+        </svg>
+        <span style={{ fontSize: 12, color: 'var(--sand-400)' }}>Feito por <span style={{ fontWeight: 500, color: 'var(--sand-500)' }}>Cloudhead</span></span>
       </div>
     </div>
   );

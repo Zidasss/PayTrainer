@@ -2,7 +2,34 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Dumbbell, ArrowRight, Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+
+// Cloudhead logo component
+function CloudheadLogo({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ borderRadius: '50%' }}>
+      <circle cx="50" cy="50" r="50" fill="#1a1a1a"/>
+      <ellipse cx="50" cy="58" rx="28" ry="24" fill="white" stroke="#1a1a1a" strokeWidth="3"/>
+      <ellipse cx="50" cy="30" rx="22" ry="18" fill="#1a1a1a"/>
+      <ellipse cx="62" cy="22" rx="12" ry="10" fill="#1a1a1a"/>
+      <circle cx="68" cy="16" r="4" fill="#1a1a1a"/>
+      <circle cx="42" cy="54" r="3.5" fill="#1a1a1a"/>
+      <path d="M 38 62 Q 44 67 48 62" stroke="#1a1a1a" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <ellipse cx="66" cy="56" rx="5" ry="4.5" fill="#1a1a1a" transform="rotate(-10 66 56)"/>
+    </svg>
+  );
+}
+
+// Stride logo
+function StrideLogo({ size = 56 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--green-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+        <path d="M6 4v16m12-16v16M2 8h4m12 0h4M2 16h4m12 0h4"/>
+      </svg>
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const { signIn, signUp, session, profile } = useAuth();
@@ -39,23 +66,15 @@ export default function AuthPage() {
       if (mode === 'login') {
         await signIn({ email: form.email, password: form.password });
         const redirect = sessionStorage.getItem('joinRedirect');
-        if (redirect) {
-          sessionStorage.removeItem('joinRedirect');
-          setTimeout(() => nav(redirect), 500);
-        }
+        if (redirect) { sessionStorage.removeItem('joinRedirect'); setTimeout(() => nav(redirect), 500); }
       } else if (mode === 'signup') {
         if (!role) { setError('Selecione seu perfil'); setLoading(false); return; }
         await signUp({ ...form, role });
         const redirect = sessionStorage.getItem('joinRedirect');
-        if (redirect) {
-          sessionStorage.removeItem('joinRedirect');
-          setTimeout(() => nav(redirect), 500);
-        }
+        if (redirect) { sessionStorage.removeItem('joinRedirect'); setTimeout(() => nav(redirect), 500); }
       }
     } catch (err) {
-      setError(err.message === 'Invalid login credentials'
-        ? 'Email ou senha incorretos'
-        : err.message);
+      setError(err.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : err.message);
     }
     setLoading(false);
   }
@@ -71,33 +90,23 @@ export default function AuthPage() {
       });
       if (error) throw error;
       setResetSent(true);
-    } catch (err) {
-      setError(err.message);
-    }
+    } catch (err) { setError(err.message); }
     setLoading(false);
   }
 
   async function handleGoogleLogin() {
     setSocialLoading(true);
     try {
-      const redirectTo = sessionStorage.getItem('joinRedirect')
-        ? `${window.location.origin}${sessionStorage.getItem('joinRedirect')}`
-        : `${window.location.origin}/auth`;
-
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo },
+        options: { redirectTo: `${window.location.origin}/auth` },
       });
       if (error) throw error;
-    } catch (err) {
-      setError(err.message);
-      setSocialLoading(false);
-    }
+    } catch (err) { setError(err.message); setSocialLoading(false); }
   }
 
   const hasJoinRedirect = !!sessionStorage.getItem('joinRedirect');
 
-  // ─── Google button component ───
   function GoogleButton({ label }) {
     return (
       <button onClick={handleGoogleLogin} disabled={socialLoading}
@@ -119,7 +128,6 @@ export default function AuthPage() {
     );
   }
 
-  // ─── Separator ───
   function Divider() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
@@ -130,19 +138,37 @@ export default function AuthPage() {
     );
   }
 
+  function BackButton({ to }) {
+    return (
+      <div className="animate-in" onClick={() => typeof to === 'function' ? to() : nav(to || '/')}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--sand-500)', marginBottom: 20, padding: '8px 0' }}>
+        <ArrowLeft size={18} />
+        <span style={{ fontSize: 14 }}>Voltar</span>
+      </div>
+    );
+  }
+
+  function PoweredBy() {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 28, opacity: 0.5 }}>
+        <CloudheadLogo size={18} />
+        <span style={{ fontSize: 11, color: 'var(--sand-400)' }}>por Cloudhead</span>
+      </div>
+    );
+  }
+
   // ─── Forgot password ───
   if (mode === 'forgot') {
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
+        <BackButton to={() => setMode('login')} />
         <div className="animate-in" style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--sand-100)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
             <Mail size={28} color="var(--sand-600)" />
           </div>
           <p className="page-title">{resetSent ? 'Email enviado!' : 'Esqueceu sua senha?'}</p>
           <p className="page-subtitle" style={{ marginTop: 4, lineHeight: 1.5 }}>
-            {resetSent
-              ? 'Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.'
-              : 'Digite seu email e enviaremos um link para redefinir sua senha.'}
+            {resetSent ? 'Verifique sua caixa de entrada e siga as instruções.' : 'Digite seu email para receber o link de recuperação.'}
           </p>
         </div>
 
@@ -153,34 +179,25 @@ export default function AuthPage() {
               <input className="input-field" value={form.email} onChange={set('email')} placeholder="seu@email.com" type="email" required />
             </div>
             {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
-            <button type="submit" className="btn btn-primary animate-in delay-2" disabled={loading}
-              style={{ opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" className="btn btn-primary animate-in delay-2" disabled={loading} style={{ opacity: loading ? 0.7 : 1 }}>
               {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} /> : 'Enviar link de recuperação'}
             </button>
           </form>
         ) : (
-          <button className="btn btn-primary animate-in delay-1" onClick={() => { setMode('login'); setResetSent(false); }}>
-            Voltar para o login
-          </button>
+          <button className="btn btn-primary animate-in delay-1" onClick={() => { setMode('login'); setResetSent(false); }}>Voltar para o login</button>
         )}
-
-        {!resetSent && (
-          <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--sand-500)', marginTop: 20 }}>
-            <span onClick={() => setMode('login')} style={{ color: 'var(--green-500)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <ArrowLeft size={14} /> Voltar ao login
-            </span>
-          </p>
-        )}
+        <PoweredBy />
       </div>
     );
   }
 
-  // ─── Role selection for signup ───
+  // ─── Role selection ───
   if (mode === 'signup' && !role) {
     if (hasJoinRedirect) { setRole('student'); return null; }
 
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
+        <BackButton to="/" />
         <div className="animate-in">
           <p className="page-title">Como deseja usar o Stride?</p>
           <p className="page-subtitle" style={{ marginBottom: 28 }}>Selecione seu perfil</p>
@@ -211,6 +228,7 @@ export default function AuthPage() {
         <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--sand-500)' }}>
           Já tem conta? <span onClick={() => setMode('login')} style={{ color: 'var(--green-500)', fontWeight: 500, cursor: 'pointer' }}>Entrar</span>
         </p>
+        <PoweredBy />
       </div>
     );
   }
@@ -218,17 +236,16 @@ export default function AuthPage() {
   // ─── Login / Signup form ───
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
+      <BackButton to={mode === 'signup' ? () => { setRole(null); setMode('signup'); } : '/'} />
+
       <div className="animate-in" style={{ textAlign: 'center', marginBottom: 28 }}>
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--green-500)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-          <Dumbbell size={28} color="white" />
-        </div>
-        <p className="page-title">Stride</p>
+        <StrideLogo />
+        <p className="page-title" style={{ marginTop: 16 }}>Stride</p>
         <p className="page-subtitle">
           {mode === 'login' ? 'Entre na sua conta' : `Crie sua conta${hasJoinRedirect ? ' de aluno' : ''}`}
         </p>
       </div>
 
-      {/* Google login */}
       <div className="animate-in delay-1">
         <GoogleButton label={mode === 'login' ? 'Entrar com Google' : 'Cadastrar com Google'} />
         <Divider />
@@ -257,26 +274,21 @@ export default function AuthPage() {
           <label className="input-label">Senha</label>
           <input className="input-field" style={{ paddingRight: 44 }} value={form.password} onChange={set('password')}
             placeholder={mode === 'signup' ? 'Mínimo 6 caracteres' : 'Sua senha'} type={showPw ? 'text' : 'password'} required minLength={6} />
-          <div onClick={() => setShowPw(!showPw)}
-            style={{ position: 'absolute', right: 12, top: 32, cursor: 'pointer', color: 'var(--sand-400)' }}>
+          <div onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 12, top: 32, cursor: 'pointer', color: 'var(--sand-400)' }}>
             {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
           </div>
         </div>
 
         {mode === 'login' && (
           <div className="animate-in delay-3" style={{ textAlign: 'right', marginBottom: 4 }}>
-            <span onClick={() => setMode('forgot')} style={{ fontSize: 13, color: 'var(--green-500)', cursor: 'pointer' }}>
-              Esqueceu sua senha?
-            </span>
+            <span onClick={() => setMode('forgot')} style={{ fontSize: 13, color: 'var(--green-500)', cursor: 'pointer' }}>Esqueceu sua senha?</span>
           </div>
         )}
 
         {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12, marginTop: 8 }}>{error}</p>}
 
-        <button type="submit" className="btn btn-primary animate-in delay-4" disabled={loading}
-          style={{ marginTop: 12, opacity: loading ? 0.7 : 1 }}>
-          {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
-            : <>{mode === 'login' ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} /></>}
+        <button type="submit" className="btn btn-primary animate-in delay-4" disabled={loading} style={{ marginTop: 12, opacity: loading ? 0.7 : 1 }}>
+          {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} /> : <>{mode === 'login' ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} /></>}
         </button>
       </form>
 
@@ -287,6 +299,7 @@ export default function AuthPage() {
           <>Já tem conta? <span onClick={() => { setMode('login'); setRole(null); }} style={{ color: 'var(--green-500)', fontWeight: 500, cursor: 'pointer' }}>Entrar</span></>
         )}
       </p>
+      <PoweredBy />
     </div>
   );
 }

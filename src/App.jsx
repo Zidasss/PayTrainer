@@ -5,6 +5,7 @@ import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import ResetPassword from './pages/ResetPassword';
 import OAuthSetup from './pages/OAuthSetup';
+import Feedback from './pages/Feedback';
 import StudentHome from './pages/StudentHome';
 import StudentSchedule from './pages/StudentSchedule';
 import StudentPayment from './pages/StudentPayment';
@@ -20,7 +21,6 @@ import { useState, useEffect } from 'react';
 
 function ProtectedRoute({ children, requiredRole }) {
   const { session, profile, loading, needsProfileSetup } = useAuth();
-
   if (loading) return <LoadingScreen />;
   if (!session) return <Navigate to="/" replace />;
   if (needsProfileSetup) return <OAuthSetup />;
@@ -33,17 +33,10 @@ function ProtectedRoute({ children, requiredRole }) {
 function AuthRoute() {
   const { session, profile, loading, needsProfileSetup } = useAuth();
   if (loading) return <LoadingScreen />;
-
   if (session && needsProfileSetup) return <OAuthSetup />;
-
   const joinRedirect = sessionStorage.getItem('joinRedirect');
-  if (session && profile && joinRedirect) {
-    return <Navigate to={joinRedirect} replace />;
-  }
-
-  if (session && profile) {
-    return <Navigate to={profile.role === 'trainer' ? '/trainer' : '/student'} replace />;
-  }
+  if (session && profile && joinRedirect) return <Navigate to={joinRedirect} replace />;
+  if (session && profile) return <Navigate to={profile.role === 'trainer' ? '/trainer' : '/student'} replace />;
   return <AuthPage />;
 }
 
@@ -51,29 +44,23 @@ function LandingRoute() {
   const { session, profile, loading, needsProfileSetup } = useAuth();
   if (loading) return <LoadingScreen />;
   if (session && needsProfileSetup) return <OAuthSetup />;
-  if (session && profile) {
-    return <Navigate to={profile.role === 'trainer' ? '/trainer' : '/student'} replace />;
-  }
+  if (session && profile) return <Navigate to={profile.role === 'trainer' ? '/trainer' : '/student'} replace />;
   return <LandingPage />;
 }
 
 function WithOnboarding({ children, role }) {
   const { profile } = useAuth();
   const [showTutorial, setShowTutorial] = useState(false);
-
   useEffect(() => {
     if (profile) {
-      const key = `fitagenda_onboarding_${profile.id}`;
-      const seen = localStorage.getItem(key);
-      if (!seen) setShowTutorial(true);
+      const key = `stride_onboarding_${profile.id}`;
+      if (!localStorage.getItem(key)) setShowTutorial(true);
     }
   }, [profile]);
-
   function completeTutorial() {
-    if (profile) localStorage.setItem(`fitagenda_onboarding_${profile.id}`, 'true');
+    if (profile) localStorage.setItem(`stride_onboarding_${profile.id}`, 'true');
     setShowTutorial(false);
   }
-
   return (
     <>
       {showTutorial && <OnboardingTutorial role={role} onComplete={completeTutorial} />}
@@ -91,39 +78,18 @@ export default function App() {
           <Route path="/auth" element={<AuthRoute />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/join/:trainerId" element={<JoinTrainer />} />
+          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
 
-          <Route path="/student" element={
-            <ProtectedRoute requiredRole="student">
-              <WithOnboarding role="student"><StudentHome /></WithOnboarding>
-            </ProtectedRoute>
-          } />
-          <Route path="/student/schedule" element={
-            <ProtectedRoute requiredRole="student"><StudentSchedule /></ProtectedRoute>
-          } />
-          <Route path="/student/payment" element={
-            <ProtectedRoute requiredRole="student"><StudentPayment /></ProtectedRoute>
-          } />
-          <Route path="/student/profile" element={
-            <ProtectedRoute requiredRole="student"><StudentProfile /></ProtectedRoute>
-          } />
+          <Route path="/student" element={<ProtectedRoute requiredRole="student"><WithOnboarding role="student"><StudentHome /></WithOnboarding></ProtectedRoute>} />
+          <Route path="/student/schedule" element={<ProtectedRoute requiredRole="student"><StudentSchedule /></ProtectedRoute>} />
+          <Route path="/student/payment" element={<ProtectedRoute requiredRole="student"><StudentPayment /></ProtectedRoute>} />
+          <Route path="/student/profile" element={<ProtectedRoute requiredRole="student"><StudentProfile /></ProtectedRoute>} />
 
-          <Route path="/trainer" element={
-            <ProtectedRoute requiredRole="trainer">
-              <WithOnboarding role="trainer"><TrainerHome /></WithOnboarding>
-            </ProtectedRoute>
-          } />
-          <Route path="/trainer/schedule" element={
-            <ProtectedRoute requiredRole="trainer"><TrainerSchedule /></ProtectedRoute>
-          } />
-          <Route path="/trainer/students" element={
-            <ProtectedRoute requiredRole="trainer"><TrainerStudents /></ProtectedRoute>
-          } />
-          <Route path="/trainer/finance" element={
-            <ProtectedRoute requiredRole="trainer"><TrainerFinance /></ProtectedRoute>
-          } />
-          <Route path="/trainer/plans" element={
-            <ProtectedRoute requiredRole="trainer"><TrainerPlans /></ProtectedRoute>
-          } />
+          <Route path="/trainer" element={<ProtectedRoute requiredRole="trainer"><WithOnboarding role="trainer"><TrainerHome /></WithOnboarding></ProtectedRoute>} />
+          <Route path="/trainer/schedule" element={<ProtectedRoute requiredRole="trainer"><TrainerSchedule /></ProtectedRoute>} />
+          <Route path="/trainer/students" element={<ProtectedRoute requiredRole="trainer"><TrainerStudents /></ProtectedRoute>} />
+          <Route path="/trainer/finance" element={<ProtectedRoute requiredRole="trainer"><TrainerFinance /></ProtectedRoute>} />
+          <Route path="/trainer/plans" element={<ProtectedRoute requiredRole="trainer"><TrainerPlans /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
