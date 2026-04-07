@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Dumbbell, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Dumbbell, ArrowRight, Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
 
 export default function AuthPage() {
   const { signIn, signUp, session, profile } = useAuth();
   const nav = useNavigate();
-  const [mode, setMode] = useState('login'); // login | signup
-  const [role, setRole] = useState(null);     // student | trainer
+  const [mode, setMode] = useState('login'); // login | signup | forgot
+  const [role, setRole] = useState(null);
   const [form, setForm] = useState({ email: '', password: '', fullName: '', phone: '' });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
-  // Check for join redirect after login
   useEffect(() => {
     if (session && profile) {
       const redirect = sessionStorage.getItem('joinRedirect');
@@ -33,14 +34,12 @@ export default function AuthPage() {
     try {
       if (mode === 'login') {
         await signIn({ email: form.email, password: form.password });
-        // Check for redirect
         const redirect = sessionStorage.getItem('joinRedirect');
         if (redirect) {
           sessionStorage.removeItem('joinRedirect');
-          // Small delay to let profile load
           setTimeout(() => nav(redirect), 500);
         }
-      } else {
+      } else if (mode === 'signup') {
         if (!role) { setError('Selecione seu perfil'); setLoading(false); return; }
         await signUp({ ...form, role });
         const redirect = sessionStorage.getItem('joinRedirect');
@@ -57,12 +56,75 @@ export default function AuthPage() {
     setLoading(false);
   }
 
-  // ─── Check if coming from join link → default to signup as student ───
+  async function handleResetPassword(e) {
+    e.preventDefault();
+    if (!form.email) { setError('Digite seu email'); return; }
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(form.email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }
+
   const hasJoinRedirect = !!sessionStorage.getItem('joinRedirect');
 
-  // ─── Splash / Role selection for signup ───
+  // ─── Forgot password ───
+  if (mode === 'forgot') {
+    return (
+      <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
+        <div className="animate-in" style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--sand-100)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Mail size={28} color="var(--sand-600)" />
+          </div>
+          <p className="page-title">{resetSent ? 'Email enviado!' : 'Esqueceu sua senha?'}</p>
+          <p className="page-subtitle" style={{ marginTop: 4, lineHeight: 1.5 }}>
+            {resetSent
+              ? 'Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.'
+              : 'Digite seu email e enviaremos um link para redefinir sua senha.'}
+          </p>
+        </div>
+
+        {!resetSent ? (
+          <form onSubmit={handleResetPassword}>
+            <div className="animate-in delay-1" style={{ marginBottom: 14 }}>
+              <label className="input-label">Email</label>
+              <input className="input-field" value={form.email} onChange={set('email')} placeholder="seu@email.com" type="email" required />
+            </div>
+
+            {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+
+            <button type="submit" className="btn btn-primary animate-in delay-2" disabled={loading}
+              style={{ opacity: loading ? 0.7 : 1 }}>
+              {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
+                : 'Enviar link de recuperação'}
+            </button>
+          </form>
+        ) : (
+          <button className="btn btn-primary animate-in delay-1" onClick={() => { setMode('login'); setResetSent(false); }}>
+            Voltar para o login
+          </button>
+        )}
+
+        {!resetSent && (
+          <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--sand-500)', marginTop: 20 }}>
+            <span onClick={() => setMode('login')} style={{ color: 'var(--green-500)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <ArrowLeft size={14} /> Voltar ao login
+            </span>
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ─── Role selection for signup ───
   if (mode === 'signup' && !role) {
-    // If coming from join link, auto-select student
     if (hasJoinRedirect) {
       setRole('student');
       return null;
@@ -76,7 +138,7 @@ export default function AuthPage() {
         </div>
 
         <div className="animate-in delay-1" onClick={() => setRole('student')}
-          style={{ cursor: 'pointer', padding: 20, borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--sand-200)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16, transition: 'border-color 0.15s' }}>
+          style={{ cursor: 'pointer', padding: 20, borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--sand-200)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 22 }}>🏋️</span>
           </div>
@@ -98,13 +160,13 @@ export default function AuthPage() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--sand-500)' }}>
-          Já tem conta?{' '}
-          <span onClick={() => setMode('login')} style={{ color: 'var(--green-500)', fontWeight: 500, cursor: 'pointer' }}>Entrar</span>
+          Já tem conta? <span onClick={() => setMode('login')} style={{ color: 'var(--green-500)', fontWeight: 500, cursor: 'pointer' }}>Entrar</span>
         </p>
       </div>
     );
   }
 
+  // ─── Login / Signup form ───
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
       <div className="animate-in" style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -146,12 +208,18 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {error && (
-          <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12, marginTop: 8 }}>{error}</p>
+        {mode === 'login' && (
+          <div className="animate-in delay-3" style={{ textAlign: 'right', marginBottom: 4 }}>
+            <span onClick={() => setMode('forgot')} style={{ fontSize: 13, color: 'var(--green-500)', cursor: 'pointer' }}>
+              Esqueceu sua senha?
+            </span>
+          </div>
         )}
 
+        {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12, marginTop: 8 }}>{error}</p>}
+
         <button type="submit" className="btn btn-primary animate-in delay-4" disabled={loading}
-          style={{ marginTop: 16, opacity: loading ? 0.7 : 1 }}>
+          style={{ marginTop: 12, opacity: loading ? 0.7 : 1 }}>
           {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
             : <>{mode === 'login' ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} /></>}
         </button>
