@@ -86,7 +86,7 @@ serve(async (req) => {
           }, { onConflict: 'student_id,trainer_id' });
 
           const amount = invoice.amount_paid;
-          const platformFee = Math.round(amount * 0.05);
+          const platformFee = Math.round(amount * 0.08);
           await supabase.from('payments').insert({
             student_id: meta.student_id,
             trainer_id: meta.trainer_id,
@@ -132,7 +132,7 @@ serve(async (req) => {
 
         const meta = session.metadata || {};
         const amount = session.amount_total || 0;
-        const platformFee = Math.round(amount * 0.05);
+        const platformFee = Math.round(amount * 0.08);
 
         if (meta.student_id && meta.trainer_id) {
           await supabase.from('payments').insert({

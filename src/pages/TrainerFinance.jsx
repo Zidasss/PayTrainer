@@ -70,7 +70,7 @@ export default function TrainerFinance() {
   }
 
   const totalRevenue = students.reduce((sum, s) => sum + (s.plans?.price_cents || 0), 0);
-  const platformFee = Math.round(totalRevenue * 0.05);
+  const platformFee = Math.round(totalRevenue * 0.08);
   const netRevenue = totalRevenue - platformFee;
 
   const monthPayments = payments.filter(p => p.status === 'succeeded');
@@ -106,7 +106,7 @@ export default function TrainerFinance() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)', fontSize: 13, opacity: 0.8 }}>
           <span>Bruto: {formatBRL(totalRevenue)}</span>
-          <span>Taxa (5%): {formatBRL(platformFee)}</span>
+          <span>Taxa (8%): {formatBRL(platformFee)}</span>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export default function TrainerFinance() {
 
         {students.map(s => {
           const price = s.plans?.price_cents || 0;
-          const fee = Math.round(price * 0.05);
+          const fee = Math.round(price * 0.08);
           const net = price - fee;
           return (
             <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--sand-100)' }}>

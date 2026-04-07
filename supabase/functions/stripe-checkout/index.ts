@@ -208,7 +208,7 @@ serve(async (req) => {
         'payment_method_types[0]': 'card',
         'line_items[0][price]': stripePriceId,
         'line_items[0][quantity]': '1',
-        'subscription_data[application_fee_percent]': '5',
+        'subscription_data[application_fee_percent]': '8',
         'subscription_data[transfer_data][destination]': trainerStripeId,
         'subscription_data[metadata][student_id]': user.id,
         'subscription_data[metadata][trainer_id]': trainer_id,
@@ -259,7 +259,7 @@ serve(async (req) => {
       if (!trainer?.stripe_account_id) throw new Error('Trainer not set up');
 
       const amount = trainer.extra_class_price;
-      const platformFee = Math.round(amount * 0.05);
+      const platformFee = Math.round(amount * 0.08);
 
       const session = await stripe('/checkout/sessions', {
         mode: 'payment',
