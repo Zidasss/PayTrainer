@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { callStripe } from '../lib/supabase';
 import { BottomNav, getWeekDates, DAYS_PT, formatBRL } from '../components/Shared';
+import { createNotification } from '../lib/notifications';
 import { ChevronLeft, ChevronRight, MapPin, Check, Clock, X, AlertTriangle, Info } from 'lucide-react';
 
 export default function StudentSchedule() {
@@ -73,7 +74,7 @@ export default function StudentSchedule() {
     const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`);
     const diffMs = bookingDateTime.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
-    return diffHours > 2;
+    return diffHours > 10;
   }
 
   // Check if a date+time is in the past
@@ -84,13 +85,29 @@ export default function StudentSchedule() {
   }
 
   async function cancelBooking(bookingId) {
-    const booking = bookings.find(b => b.id === bookingId);
-    if (!booking) return;
+      const booking = bookings.find(b => b.id === bookingId);
+      if (!booking) return;
 
-    if (!canCancel(booking)) {
-      showToast('Não é possível cancelar com menos de 2h de antecedência');
-      return;
-    }
+      if (!canCancel(booking)) {
+        showToast('Não é possível cancelar com menos de 10h de antecedência');
+        return;
+      }
+
+      setCancelingId(bookingId);
+      try {
+        await supabase
+          .from('bookings')
+          .update({ status: 'canceled' })
+          .eq('id', bookingId);
+
+        showToast('Aula cancelada com sucesso');
+
+        await createNotification({
+          userId: subscription.trainer_id,
+          title: 'Aula cancelada',
+          message: `${profile.full_name} cancelou uma aula`,
+          type: 'warning',
+        });
 
     setCancelingId(bookingId);
     try {
@@ -169,6 +186,12 @@ export default function StudentSchedule() {
       });
 
       const { error } = await supabase.from('bookings').insert(inserts);
+      await createNotification({
+        userId: subscription.trainer_id,
+        title: 'Nova aula agendada',
+        message: `${profile.full_name} agendou ${selected.length} aula(s)`,
+        type: 'success',
+      });
       if (error) throw error;
 
       if (extraSlots.length > 0) {
@@ -434,7 +457,7 @@ export default function StudentSchedule() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 0', marginTop: 4 }}>
             <AlertTriangle size={14} color="var(--sand-400)" style={{ marginTop: 2, flexShrink: 0 }} />
             <p style={{ fontSize: 11, color: 'var(--sand-400)', lineHeight: 1.5 }}>
-              Cancelamentos devem ser feitos com no mínimo 2 horas de antecedência. Aulas não canceladas a tempo não serão devolvidas ao saldo semanal.
+              Cancelamentos devem ser feitos com no mínimo 10 horas de antecedência. Aulas não canceladas a tempo não serão devolvidas ao saldo semanal.
             </p>
           </div>
         </div>

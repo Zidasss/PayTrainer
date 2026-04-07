@@ -17,6 +17,7 @@ import TrainerFinance from './pages/TrainerFinance';
 import TrainerPlans from './pages/TrainerPlans';
 import JoinTrainer from './pages/JoinTrainer';
 import OnboardingTutorial from './components/OnboardingTutorial';
+import Notifications from './pages/Notifications';
 import { useState, useEffect } from 'react';
 
 function ProtectedRoute({ children, requiredRole }) {
@@ -90,6 +91,8 @@ export default function App() {
           <Route path="/trainer/students" element={<ProtectedRoute requiredRole="trainer"><TrainerStudents /></ProtectedRoute>} />
           <Route path="/trainer/finance" element={<ProtectedRoute requiredRole="trainer"><TrainerFinance /></ProtectedRoute>} />
           <Route path="/trainer/plans" element={<ProtectedRoute requiredRole="trainer"><TrainerPlans /></ProtectedRoute>} />
+
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

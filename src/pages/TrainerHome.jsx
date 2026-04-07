@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
+import { NotificationBell } from '../components/NotificationBell';
 import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, LogOut, MessageSquare, Settings } from 'lucide-react';
 
 export default function TrainerHome() {
@@ -114,13 +115,13 @@ export default function TrainerHome() {
           <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>Olá,</p>
           <p className="page-title">{profile?.full_name?.split(' ')[0]}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div onClick={signOut} style={{ cursor: 'pointer', padding: 6 }}>
-            <LogOut size={20} color="var(--sand-400)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <NotificationBell />
+            <div onClick={signOut} style={{ cursor: 'pointer', padding: 6 }}>
+              <LogOut size={20} color="var(--sand-400)" />
+            </div>
+            <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
           </div>
-          <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
-        </div>
-      </div>
 
       {/* Stripe setup banner */}
       {!stripeReady && (

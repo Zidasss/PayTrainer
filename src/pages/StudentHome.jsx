@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
+import { NotificationBell } from '../components/NotificationBell';
 import { CalendarPlus, ChevronRight, MapPin, AlertTriangle, CreditCard } from 'lucide-react';
 
 export default function StudentHome() {
@@ -99,8 +100,10 @@ export default function StudentHome() {
           <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>Olá,</p>
           <p className="page-title">{profile?.full_name?.split(' ')[0]}</p>
         </div>
-        <Avatar name={profile?.full_name} size="md" />
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <NotificationBell />
+          <Avatar name={profile?.full_name} size="md" />
+        </div>
 
       {/* Locked banner */}
       {isLocked && (

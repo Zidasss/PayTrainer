@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { PasswordStrength } from '../components/PasswordStrength';
+import { formatPhone, isValidPhone, getPasswordStrength } from '../lib/validation';
 import { ArrowRight, Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
 
 // Cloudhead logo component
@@ -69,6 +71,18 @@ export default function AuthPage() {
         if (redirect) { sessionStorage.removeItem('joinRedirect'); setTimeout(() => nav(redirect), 500); }
       } else if (mode === 'signup') {
         if (!role) { setError('Selecione seu perfil'); setLoading(false); return; }
+        if (mode === 'signup') {
+          if (getPasswordStrength(form.password).score < 3) {
+            setError('Senha muito fraca. Use letras maiúsculas, números e caracteres especiais.');
+            setLoading(false);
+            return;
+          }
+          if (form.phone && !isValidPhone(form.phone)) {
+            setError('Telefone inválido. Use o formato (11) 99999-9999');
+            setLoading(false);
+            return;
+          }
+        }
         await signUp({ ...form, role });
         const redirect = sessionStorage.getItem('joinRedirect');
         if (redirect) { sessionStorage.removeItem('joinRedirect'); setTimeout(() => nav(redirect), 500); }
@@ -260,7 +274,7 @@ export default function AuthPage() {
             </div>
             <div className="animate-in delay-1" style={{ marginBottom: 14 }}>
               <label className="input-label">Telefone</label>
-              <input className="input-field" value={form.phone} onChange={set('phone')} placeholder="(11) 99999-9999" type="tel" />
+              <input className="input-field" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: formatPhone(e.target.value) }))} placeholder="(11) 99999-9999" type="tel" />
             </div>
           </>
         )}
@@ -279,6 +293,8 @@ export default function AuthPage() {
           </div>
         </div>
 
+        {mode === 'signup' && <PasswordStrength password={form.password} />}
+        
         {mode === 'login' && (
           <div className="animate-in delay-3" style={{ textAlign: 'right', marginBottom: 4 }}>
             <span onClick={() => setMode('forgot')} style={{ fontSize: 13, color: 'var(--green-500)', cursor: 'pointer' }}>Esqueceu sua senha?</span>
