@@ -1,16 +1,11 @@
 // supabase/functions/stripe-checkout/index.ts
-// Deploy with: supabase functions deploy stripe-checkout
-//
-// This Edge Function handles:
-// 1. Creating Stripe Connect accounts for trainers
-// 2. Creating checkout sessions for students (with 5% platform fee)
-// 3. Creating Stripe billing portal sessions
+// Uses Stripe REST API directly (no SDK) for Supabase Edge Functions compatibility
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2024-06-20' });
+const STRIPE_KEY = Deno.env.get('STRIPE_SECRET_KEY')!;
+const STRIPE_API = 'https://api.stripe.com/v1';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -18,6 +13,56 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Helper to call Stripe REST API
+async function stripe(endpoint: string, params: Record<string, any> = {}, method = 'POST') {
+  const body = new URLSearchParams();
+  flattenParams(params, body);
+
+  const res = await fetch(`${STRIPE_API}${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${STRIPE_KEY}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: method === 'GET' ? undefined : body.toString(),
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+// Stripe expects nested params as form-encoded: metadata[key]=value
+function flattenParams(obj: any, params: URLSearchParams, prefix = '') {
+  for (const [key, val] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}[${key}]` : key;
+    if (val !== null && val !== undefined && typeof val === 'object' && !Array.isArray(val)) {
+      flattenParams(val, params, fullKey);
+    } else if (Array.isArray(val)) {
+      val.forEach((item, i) => {
+        if (typeof item === 'object') {
+          flattenParams(item, params, `${fullKey}[${i}]`);
+        } else {
+          params.append(`${fullKey}[${i}]`, String(item));
+        }
+      });
+    } else if (val !== null && val !== undefined) {
+      params.append(fullKey, String(val));
+    }
+  }
+}
+
+// GET request to Stripe
+async function stripeGet(endpoint: string) {
+  const res = await fetch(`${STRIPE_API}${endpoint}`, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${STRIPE_KEY}` },
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -33,14 +78,12 @@ serve(async (req) => {
 
     // ─── TRAINER: Create Stripe Connect Account ───
     if (action === 'create_connect_account') {
-      const account = await stripe.accounts.create({
+      const account = await stripe('/accounts', {
         type: 'express',
         country: 'BR',
         email: user.email,
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
+        'capabilities[card_payments][requested]': 'true',
+        'capabilities[transfers][requested]': 'true',
         business_type: 'individual',
       });
 
@@ -49,7 +92,7 @@ serve(async (req) => {
         .update({ stripe_account_id: account.id })
         .eq('id', user.id);
 
-      const accountLink = await stripe.accountLinks.create({
+      const accountLink = await stripe('/account_links', {
         account: account.id,
         refresh_url: `${params.returnUrl}?refresh=true`,
         return_url: `${params.returnUrl}?success=true`,
@@ -75,7 +118,7 @@ serve(async (req) => {
         });
       }
 
-      const account = await stripe.accounts.retrieve(trainer.stripe_account_id);
+      const account = await stripeGet(`/accounts/${trainer.stripe_account_id}`);
       const complete = account.charges_enabled && account.payouts_enabled;
 
       if (complete) {
@@ -96,12 +139,19 @@ serve(async (req) => {
 
       const { data: plan } = await supabase
         .from('plans')
-        .select('*, trainers(stripe_account_id)')
+        .select('*')
         .eq('id', plan_id)
         .single();
 
       if (!plan) throw new Error('Plan not found');
-      const trainerStripeId = plan.trainers.stripe_account_id;
+
+      const { data: trainer } = await supabase
+        .from('trainers')
+        .select('stripe_account_id')
+        .eq('id', trainer_id)
+        .single();
+
+      const trainerStripeId = trainer?.stripe_account_id;
       if (!trainerStripeId) throw new Error('Trainer not set up for payments');
 
       // Create or retrieve Stripe customer
@@ -114,7 +164,7 @@ serve(async (req) => {
 
       let customerId = sub?.stripe_customer_id;
       if (!customerId) {
-        const customer = await stripe.customers.create({
+        const customer = await stripe('/customers', {
           email: user.email,
           metadata: { supabase_user_id: user.id },
         });
@@ -124,16 +174,16 @@ serve(async (req) => {
       // Create Stripe price if not exists
       let stripePriceId = plan.stripe_price_id;
       if (!stripePriceId) {
-        const product = await stripe.products.create({
+        const product = await stripe('/products', {
           name: `FitAgenda - ${plan.name}`,
           metadata: { plan_id: plan.id, trainer_id },
         });
 
-        const price = await stripe.prices.create({
+        const price = await stripe('/prices', {
           product: product.id,
-          unit_amount: plan.price_cents,
+          unit_amount: String(plan.price_cents),
           currency: 'brl',
-          recurring: { interval: 'month' },
+          'recurring[interval]': 'month',
         });
 
         stripePriceId = price.id;
@@ -143,30 +193,22 @@ serve(async (req) => {
           .eq('id', plan.id);
       }
 
-      // 5% platform fee
-      const applicationFeePercent = 5;
-
-      const session = await stripe.checkout.sessions.create({
+      const session = await stripe('/checkout/sessions', {
         customer: customerId,
         mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [{ price: stripePriceId, quantity: 1 }],
-        subscription_data: {
-          application_fee_percent: applicationFeePercent,
-          transfer_data: { destination: trainerStripeId },
-          metadata: {
-            student_id: user.id,
-            trainer_id,
-            plan_id: plan.id,
-          },
-        },
+        'payment_method_types[0]': 'card',
+        'line_items[0][price]': stripePriceId,
+        'line_items[0][quantity]': '1',
+        'subscription_data[application_fee_percent]': '5',
+        'subscription_data[transfer_data][destination]': trainerStripeId,
+        'subscription_data[metadata][student_id]': user.id,
+        'subscription_data[metadata][trainer_id]': trainer_id,
+        'subscription_data[metadata][plan_id]': plan.id,
         success_url: `${params.returnUrl}/student/payment?success=true`,
         cancel_url: `${params.returnUrl}/student/payment?canceled=true`,
-        metadata: {
-          student_id: user.id,
-          trainer_id,
-          plan_id: plan.id,
-        },
+        'metadata[student_id]': user.id,
+        'metadata[trainer_id]': trainer_id,
+        'metadata[plan_id]': plan.id,
       });
 
       return new Response(JSON.stringify({ url: session.url }), {
@@ -185,7 +227,7 @@ serve(async (req) => {
 
       if (!sub?.stripe_customer_id) throw new Error('No billing info');
 
-      const session = await stripe.billingPortal.sessions.create({
+      const session = await stripe('/billing_portal/sessions', {
         customer: sub.stripe_customer_id,
         return_url: params.returnUrl,
       });
@@ -210,22 +252,18 @@ serve(async (req) => {
       const amount = trainer.extra_class_price;
       const platformFee = Math.round(amount * 0.05);
 
-      const session = await stripe.checkout.sessions.create({
+      const session = await stripe('/checkout/sessions', {
         mode: 'payment',
-        payment_method_types: ['card'],
-        line_items: [{
-          price_data: {
-            currency: 'brl',
-            product_data: { name: 'FitAgenda - Aula Extra' },
-            unit_amount: amount,
-          },
-          quantity: 1,
-        }],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: { destination: trainer.stripe_account_id },
-          metadata: { student_id: user.id, trainer_id, booking_id },
-        },
+        'payment_method_types[0]': 'card',
+        'line_items[0][price_data][currency]': 'brl',
+        'line_items[0][price_data][product_data][name]': 'FitAgenda - Aula Extra',
+        'line_items[0][price_data][unit_amount]': String(amount),
+        'line_items[0][quantity]': '1',
+        'payment_intent_data[application_fee_amount]': String(platformFee),
+        'payment_intent_data[transfer_data][destination]': trainer.stripe_account_id,
+        'payment_intent_data[metadata][student_id]': user.id,
+        'payment_intent_data[metadata][trainer_id]': trainer_id,
+        'payment_intent_data[metadata][booking_id]': booking_id || '',
         success_url: `${params.returnUrl}/student/schedule?paid=true`,
         cancel_url: `${params.returnUrl}/student/schedule?canceled=true`,
       });
@@ -237,6 +275,7 @@ serve(async (req) => {
 
     throw new Error(`Unknown action: ${action}`);
   } catch (err) {
+    console.error('Error:', err.message);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
