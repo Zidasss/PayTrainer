@@ -7,7 +7,10 @@ import { Dumbbell, ArrowRight, Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react
 export default function AuthPage() {
   const { signIn, signUp, session, profile } = useAuth();
   const nav = useNavigate();
-  const [mode, setMode] = useState('login'); // login | signup | forgot
+  const [mode, setMode] = useState(() => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('mode') === 'signup' ? 'signup' : 'login';
+  });
   const [role, setRole] = useState(null);
   const [form, setForm] = useState({ email: '', password: '', fullName: '', phone: '' });
   const [showPw, setShowPw] = useState(false);

@@ -32,10 +32,10 @@ export default function LandingPage() {
         </p>
 
         <div className="animate-in delay-3" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button className="btn btn-primary" onClick={() => nav('/auth')} style={{ fontSize: 16, padding: 16 }}>
+          <button className="btn btn-primary" onClick={() => nav('/auth?mode=signup')} style={{ fontSize: 16, padding: 16 }}>
             Começar agora <ChevronRight size={18} />
           </button>
-          <button className="btn btn-ghost" onClick={() => nav('/auth')} style={{ fontSize: 14 }}>
+          <button className="btn btn-ghost" onClick={() => nav('/auth?mode=login')} style={{ fontSize: 14 }}>
             Já tenho conta — Entrar
           </button>
         </div>
@@ -112,7 +112,7 @@ export default function LandingPage() {
 
       {/* CTA */}
       <div style={{ padding: '0 24px 40px', textAlign: 'center' }}>
-        <button className="btn btn-primary" onClick={() => nav('/auth')} style={{ marginBottom: 12 }}>
+        <button className="btn btn-primary" onClick={() => nav('/auth?mode=signup')} style={{ marginBottom: 12 }}>
           Criar conta gratuita
         </button>
         <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>
