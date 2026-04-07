@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { callStripe } from '../lib/supabase';
 import { BottomNav, getWeekDates, DAYS_PT, formatBRL } from '../components/Shared';
-import { ChevronLeft, ChevronRight, MapPin, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Check, Clock, X, AlertTriangle, Info } from 'lucide-react';
 
 export default function StudentSchedule() {
   const { profile } = useAuth();
@@ -16,9 +16,11 @@ export default function StudentSchedule() {
   const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
+  const [cancelingId, setCancelingId] = useState(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(null);
 
   const weekDates = getWeekDates(weekOffset);
-  const times = ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+  const times = ['06:00','07:00','08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00','18:00','19:00'];
 
   useEffect(() => { loadData(); }, [weekOffset]);
 
@@ -62,32 +64,81 @@ export default function StudentSchedule() {
       p_week_start: monday,
     });
     setWeeklyCount(count || 0);
-
     setSelected([]);
+  }
+
+  // Check if a booking can be canceled (more than 2h before)
+  function canCancel(booking) {
+    const now = new Date();
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`);
+    const diffMs = bookingDateTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours > 2;
+  }
+
+  // Check if a date+time is in the past
+  function isPast(date, time) {
+    const now = new Date();
+    const slotDate = new Date(`${date.toISOString().split('T')[0]}T${time}:00`);
+    return slotDate < now;
+  }
+
+  async function cancelBooking(bookingId) {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    if (!canCancel(booking)) {
+      showToast('Não é possível cancelar com menos de 2h de antecedência');
+      return;
+    }
+
+    setCancelingId(bookingId);
+    try {
+      await supabase
+        .from('bookings')
+        .update({ status: 'canceled' })
+        .eq('id', bookingId);
+
+      showToast('Aula cancelada com sucesso');
+      setShowCancelConfirm(null);
+      loadData();
+    } catch (err) {
+      showToast('Erro ao cancelar: ' + err.message);
+    }
+    setCancelingId(null);
   }
 
   function getSlotStatus(date, time) {
     const dateStr = date.toISOString().split('T')[0];
     const dow = date.getDay();
+    const past = isPast(date, time);
 
     const isAvailable = availability.some(a => a.day_of_week === dow && a.start_time.slice(0, 5) === time);
-    if (!isAvailable) return 'unavailable';
+    if (!isAvailable) return { status: 'unavailable', booking: null };
 
     const booking = bookings.find(b => b.booking_date === dateStr && b.start_time.slice(0, 5) === time);
     if (booking) {
-      if (booking.student_id === profile.id) return 'mine';
-      return 'taken';
+      if (booking.student_id === profile.id) return { status: 'mine', booking };
+      return { status: 'taken', booking: null };
     }
 
-    const key = `${dateStr}_${time}`;
-    if (selected.includes(key)) return 'selected';
+    if (past) return { status: 'past', booking: null };
 
-    return 'free';
+    const key = `${dateStr}_${time}`;
+    if (selected.includes(key)) return { status: 'selected', booking: null };
+
+    return { status: 'free', booking: null };
   }
 
   function toggleSlot(date, time) {
+    if (isPast(date, time)) return;
     const key = `${date.toISOString().split('T')[0]}_${time}`;
     setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  }
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
   }
 
   const plan = subscription?.plans;
@@ -120,36 +171,52 @@ export default function StudentSchedule() {
       const { error } = await supabase.from('bookings').insert(inserts);
       if (error) throw error;
 
-      // If there are extra classes, redirect to payment
       if (extraSlots.length > 0) {
-        // For MVP: create payment for each extra class
-        const data = await callStripe('pay_extra_class', {
-          trainer_id: subscription.trainer_id,
-        });
-        if (data.url) window.location.href = data.url;
-      } else {
-        setToast('Aulas agendadas!');
-        setTimeout(() => setToast(''), 3000);
-        loadData();
+        try {
+          const data = await callStripe('pay_extra_class', {
+            trainer_id: subscription.trainer_id,
+          });
+          if (data.url) { window.location.href = data.url; return; }
+        } catch (e) {
+          console.log('Stripe not available for extra class');
+        }
       }
+
+      showToast(`${selected.length} aula(s) agendada(s)!`);
+      loadData();
     } catch (err) {
-      setToast('Erro ao agendar: ' + err.message);
-      setTimeout(() => setToast(''), 4000);
+      showToast('Erro ao agendar: ' + err.message);
     }
     setSaving(false);
   }
 
   const weekLabel = `${weekDates[0].getDate()}/${weekDates[0].getMonth() + 1} — ${weekDates[4].getDate()}/${weekDates[4].getMonth() + 1}`;
 
+  // My bookings this week for the list below
+  const myBookings = bookings
+    .filter(b => b.student_id === profile.id)
+    .sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.start_time.localeCompare(b.start_time));
+
   return (
     <div className="page">
       <div className="page-header animate-in">
         <p className="page-title">Agenda</p>
-        <p className="page-subtitle">Toque nos horários livres para agendar</p>
+        <p className="page-subtitle">Toque nos horários disponíveis para agendar</p>
       </div>
 
+      {/* Week usage indicator */}
+      {plan && (
+        <div className="animate-in" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', marginBottom: 14 }}>
+          <Info size={16} color="var(--green-600)" />
+          <span style={{ fontSize: 13, color: 'var(--green-700)' }}>
+            {weeklyCount} de {maxPerWeek} aulas usadas esta semana
+            {remainingPlan > 0 && ` · ${remainingPlan} restante(s)`}
+          </span>
+        </div>
+      )}
+
       {/* Week navigation */}
-      <div className="animate-in delay-1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="animate-in delay-1" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div onClick={() => setWeekOffset(w => w - 1)} style={{ cursor: 'pointer', padding: 8 }}>
           <ChevronLeft size={20} color="var(--sand-500)" />
         </div>
@@ -165,12 +232,21 @@ export default function StudentSchedule() {
           <thead>
             <tr>
               <th style={{ width: 50 }}></th>
-              {weekDates.map((d, i) => (
-                <th key={i}>
-                  <span style={{ display: 'block' }}>{DAYS_PT[d.getDay()]}</span>
-                  <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--sand-400)' }}>{d.getDate()}</span>
-                </th>
-              ))}
+              {weekDates.map((d, i) => {
+                const isToday = d.toDateString() === new Date().toDateString();
+                return (
+                  <th key={i} style={{ position: 'relative' }}>
+                    <span style={{ display: 'block', color: isToday ? 'var(--green-500)' : undefined }}>{DAYS_PT[d.getDay()]}</span>
+                    <span style={{
+                      fontSize: 11, fontWeight: isToday ? 600 : 400,
+                      color: isToday ? 'white' : 'var(--sand-400)',
+                      background: isToday ? 'var(--green-500)' : 'none',
+                      borderRadius: '50%', width: 20, height: 20, display: 'inline-flex',
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>{d.getDate()}</span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -178,19 +254,53 @@ export default function StudentSchedule() {
               <tr key={time}>
                 <td className="time-label">{time}</td>
                 {weekDates.map((date, di) => {
-                  const status = getSlotStatus(date, time);
-                  const slotClass = status === 'free' ? 'slot slot-free'
-                    : status === 'mine' ? 'slot slot-mine'
-                    : status === 'selected' ? 'slot slot-selected'
-                    : status === 'taken' ? 'slot slot-taken'
-                    : 'slot slot-taken';
+                  const { status, booking } = getSlotStatus(date, time);
+
+                  let bg, color, content, cursor = 'pointer', border = 'none', opacity = 1;
+
+                  switch (status) {
+                    case 'mine':
+                      bg = 'var(--green-500)'; color = 'white';
+                      content = <Check size={13} strokeWidth={2.5} />;
+                      cursor = 'pointer';
+                      break;
+                    case 'selected':
+                      bg = 'var(--green-50)'; color = 'var(--green-600)';
+                      border = '2px solid var(--green-400)';
+                      content = <Check size={13} />;
+                      break;
+                    case 'free':
+                      bg = 'var(--sand-50)'; color = 'var(--green-400)';
+                      content = <Clock size={12} strokeWidth={1.5} />;
+                      break;
+                    case 'taken':
+                      bg = 'var(--sand-100)'; color = 'var(--sand-300)';
+                      content = <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--sand-300)', display: 'block' }} />;
+                      cursor = 'default';
+                      break;
+                    case 'past':
+                      bg = 'var(--sand-50)'; color = 'var(--sand-300)';
+                      content = null; cursor = 'default'; opacity = 0.4;
+                      break;
+                    default:
+                      bg = 'transparent'; color = 'transparent';
+                      content = null; cursor = 'default'; opacity = 0;
+                      break;
+                  }
 
                   return (
                     <td key={di}>
-                      <div className={slotClass}
-                        onClick={() => status === 'free' || status === 'selected' ? toggleSlot(date, time) : null}
-                        style={status === 'unavailable' ? { opacity: 0.3, cursor: 'default' } : {}}>
-                        {status === 'mine' ? <Check size={14} /> : status === 'selected' ? <Check size={14} /> : status === 'free' ? '—' : '•'}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '8px 4px', borderRadius: 'var(--radius-sm)', minHeight: 36,
+                        background: bg, color, cursor, border, opacity,
+                        transition: 'all 0.15s',
+                      }}
+                      onClick={() => {
+                        if (status === 'free' || status === 'selected') toggleSlot(date, time);
+                        else if (status === 'mine' && booking) setShowCancelConfirm(booking.id);
+                      }}>
+                        {content}
                       </div>
                     </td>
                   );
@@ -199,6 +309,20 @@ export default function StudentSchedule() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Legend */}
+      <div className="animate-in delay-2" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16, fontSize: 11, color: 'var(--sand-500)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--green-500)' }} /> Sua aula
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--sand-50)', border: '1px solid var(--sand-200)' }} />
+          <Clock size={10} /> Disponível
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--sand-100)' }} /> Ocupado
+        </span>
       </div>
 
       {/* Location */}
@@ -214,12 +338,12 @@ export default function StudentSchedule() {
           <div style={{ padding: '12px 16px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
             {planSlots.length > 0 && (
               <p style={{ fontSize: 13, color: 'var(--green-700)', marginBottom: extraSlots.length ? 4 : 0 }}>
-                {planSlots.length} aula(s) do plano
+                ✓ {planSlots.length} aula(s) do plano
               </p>
             )}
             {extraSlots.length > 0 && (
               <p style={{ fontSize: 13, color: 'var(--coral)' }}>
-                {extraSlots.length} aula(s) extra — R$ 150,00 cada
+                + {extraSlots.length} aula(s) extra — R$ 150,00 cada
               </p>
             )}
           </div>
@@ -232,12 +356,97 @@ export default function StudentSchedule() {
         </div>
       )}
 
+      {/* My bookings this week */}
+      {myBookings.length > 0 && (
+        <div className="animate-in delay-3" style={{ marginTop: 8 }}>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 10 }}>Suas aulas esta semana</p>
+          {myBookings.map(b => {
+            const date = new Date(b.booking_date + 'T00:00:00');
+            const dayName = DAYS_PT[date.getDay()];
+            const dayNum = date.getDate();
+            const cancelable = canCancel(b);
+            const isConfirmingCancel = showCancelConfirm === b.id;
+
+            return (
+              <div key={b.id} style={{ marginBottom: 8 }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                  background: 'white', borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--sand-100)',
+                }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--green-50)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <span style={{ fontSize: 10, color: 'var(--green-600)' }}>{dayName}</span>
+                    <span style={{ fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--green-700)' }}>{dayNum}</span>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 14, fontWeight: 500 }}>
+                      {b.start_time.slice(0, 5)} — Treino presencial
+                    </p>
+                    {b.location && (
+                      <p style={{ fontSize: 12, color: 'var(--sand-500)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <MapPin size={11} /> {b.location}
+                      </p>
+                    )}
+                  </div>
+                  {cancelable ? (
+                    <div onClick={() => setShowCancelConfirm(b.id)}
+                      style={{ cursor: 'pointer', padding: 6, color: 'var(--sand-400)' }}>
+                      <X size={18} />
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--sand-400)' }}>
+                      <AlertTriangle size={12} /> Bloqueado
+                    </div>
+                  )}
+                </div>
+
+                {/* Cancel confirmation */}
+                {isConfirmingCancel && (
+                  <div style={{
+                    padding: '12px 14px', background: 'var(--coral-bg)', borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                    marginTop: -4, borderTop: 'none',
+                  }}>
+                    <p style={{ fontSize: 13, color: 'var(--coral)', fontWeight: 500, marginBottom: 4 }}>Cancelar esta aula?</p>
+                    <p style={{ fontSize: 12, color: 'var(--sand-600)', marginBottom: 10 }}>
+                      A aula será devolvida ao seu saldo semanal.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-outline" style={{ flex: 1, padding: 8, fontSize: 13 }}
+                        onClick={() => setShowCancelConfirm(null)}>
+                        Manter
+                      </button>
+                      <button className="btn btn-danger" style={{ flex: 1, padding: 8, fontSize: 13 }}
+                        onClick={() => cancelBooking(b.id)}
+                        disabled={cancelingId === b.id}>
+                        {cancelingId === b.id ? '...' : 'Sim, cancelar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Cancellation policy notice */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 0', marginTop: 4 }}>
+            <AlertTriangle size={14} color="var(--sand-400)" style={{ marginTop: 2, flexShrink: 0 }} />
+            <p style={{ fontSize: 11, color: 'var(--sand-400)', lineHeight: 1.5 }}>
+              Cancelamentos devem ser feitos com no mínimo 2 horas de antecedência. Aulas não canceladas a tempo não serão devolvidas ao saldo semanal.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--green-800)', color: 'white', padding: '10px 20px',
-          borderRadius: 'var(--radius-full)', fontSize: 14, zIndex: 200
+          borderRadius: 'var(--radius-full)', fontSize: 14, zIndex: 200,
+          maxWidth: '90%', textAlign: 'center',
         }}>{toast}</div>
       )}
 
