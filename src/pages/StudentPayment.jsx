@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, formatBRL } from '../components/Shared';
-import { CreditCard, CheckCircle, AlertCircle, ExternalLink, Calendar, XCircle, Shield } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, ExternalLink, Calendar, XCircle, Shield, ArrowRight } from 'lucide-react';
 
 export default function StudentPayment() {
   const { profile, fetchProfile } = useAuth();
+  const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isSetup = searchParams.get('setup') === 'true';
+
   const [subscription, setSub] = useState(null);
   const [payments, setPayments] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -13,6 +18,7 @@ export default function StudentPayment() {
   const [canceling, setCanceling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [changingPlan, setChangingPlan] = useState(null);
+  const [activatingPayment, setActivatingPayment] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -47,14 +53,41 @@ export default function StudentPayment() {
     setLoading(false);
   }
 
-  async function subscribe(planId) {
-    setChangingPlan(planId);
+  async function activatePayment() {
+    if (!subscription?.plan_id) return;
+    setActivatingPayment(true);
     try {
       const data = await callStripe('create_subscription', {
-        plan_id: planId,
-        trainer_id: subscription?.trainer_id,
+        plan_id: subscription.plan_id,
+        trainer_id: subscription.trainer_id,
       });
       if (data.url) window.location.href = data.url;
+    } catch (err) {
+      alert('Pagamento não disponível no momento. O personal precisa configurar o recebimento primeiro.');
+    }
+    setActivatingPayment(false);
+  }
+
+  async function changePlan(planId) {
+    setChangingPlan(planId);
+    try {
+      // Update subscription locally
+      await supabase
+        .from('subscriptions')
+        .update({ plan_id: planId })
+        .eq('id', subscription.id);
+
+      // If has Stripe, redirect to new checkout
+      try {
+        const data = await callStripe('create_subscription', {
+          plan_id: planId,
+          trainer_id: subscription.trainer_id,
+        });
+        if (data.url) window.location.href = data.url;
+      } catch (e) {
+        // Stripe not available, just update locally
+        loadData();
+      }
     } catch (err) {
       alert('Erro: ' + err.message);
     }
@@ -66,33 +99,25 @@ export default function StudentPayment() {
       const data = await callStripe('billing_portal');
       if (data.url) window.location.href = data.url;
     } catch (err) {
-      alert('O portal de pagamento ainda não está disponível. Configure o Stripe para gerenciar seu cartão.');
+      alert('O portal de pagamento ainda não está disponível.');
     }
   }
 
   async function cancelSubscription() {
     setCanceling(true);
     try {
-      // If has Stripe subscription, cancel via Stripe
       if (subscription?.stripe_subscription_id) {
         try {
           const data = await callStripe('billing_portal');
-          if (data.url) {
-            window.location.href = data.url;
-            return;
-          }
-        } catch (e) {
-          // Stripe not available, cancel locally
-        }
+          if (data.url) { window.location.href = data.url; return; }
+        } catch (e) {}
       }
 
-      // Cancel locally
       await supabase
         .from('subscriptions')
         .update({ status: 'canceled' })
         .eq('id', subscription.id);
 
-      // Cancel future bookings
       const today = new Date().toISOString().split('T')[0];
       await supabase
         .from('bookings')
@@ -110,7 +135,6 @@ export default function StudentPayment() {
     setCanceling(false);
   }
 
-  // Calculate next billing date (5th business day of next month)
   function getNextBillingDate() {
     const now = new Date();
     let target = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -126,12 +150,99 @@ export default function StudentPayment() {
   const plan = subscription?.plans;
   const isActive = subscription?.status === 'active';
   const isCanceled = subscription?.status === 'canceled';
-  const isPastDue = subscription?.status === 'past_due';
   const hasStripe = !!subscription?.stripe_customer_id;
   const trainerName = subscription?.trainers?.profiles?.full_name;
   const nextBilling = getNextBillingDate();
 
   if (loading) return <div className="page"><div className="loading-screen"><div className="spinner" /></div></div>;
+
+  // ─── SETUP MODE: just chose a plan, needs to configure payment ───
+  if (isSetup && subscription && !hasStripe) {
+    return (
+      <div className="page">
+        <div className="page-header animate-in">
+          <p className="page-title">Configurar pagamento</p>
+          <p className="page-subtitle">Etapa 2 de 2</p>
+        </div>
+
+        {/* Step indicator */}
+        <div className="animate-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green-100)', color: 'var(--green-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>✓</div>
+            <span style={{ fontSize: 12, color: 'var(--green-600)', fontWeight: 500 }}>Plano</span>
+          </div>
+          <div style={{ width: 24, height: 2, background: 'var(--green-400)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green-500)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>2</div>
+            <span style={{ fontSize: 12, color: 'var(--green-600)', fontWeight: 500 }}>Pagamento</span>
+          </div>
+        </div>
+
+        {/* Plan summary */}
+        <div className="card animate-in delay-1">
+          <p style={{ fontSize: 12, color: 'var(--sand-500)' }}>Plano selecionado</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <div>
+              <p style={{ fontSize: 16, fontWeight: 500 }}>{plan?.name}</p>
+              <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>com {trainerName}</p>
+            </div>
+            <p style={{ fontSize: 22, fontFamily: 'var(--font-display)', fontWeight: 600 }}>
+              {plan ? formatBRL(plan.price_cents) : '—'}
+            </p>
+          </div>
+        </div>
+
+        {/* Payment info */}
+        <div className="card animate-in delay-2" style={{ marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <Shield size={18} color="var(--green-500)" />
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Pagamento seguro via Stripe</p>
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--sand-600)', lineHeight: 1.6 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+              <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>Cobrança automática mensal no cartão de crédito ou débito</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+              <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>Cobrança todo 5° dia útil do mês</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+              <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>Cancele quando quiser, sem multa</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>Nenhum dado de cartão armazenado no nosso servidor</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="animate-in delay-3" style={{ marginTop: 16 }}>
+          <button className="btn btn-primary" onClick={activatePayment}
+            disabled={activatingPayment}
+            style={{ opacity: activatingPayment ? 0.6 : 1, marginBottom: 10 }}>
+            {activatingPayment
+              ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
+              : <><CreditCard size={18} /> Cadastrar cartão e ativar <ArrowRight size={16} /></>
+            }
+          </button>
+
+          <button className="btn btn-ghost" onClick={() => nav('/student')} style={{ marginBottom: 8 }}>
+            Pular por enquanto — configurar depois
+          </button>
+
+          <p style={{ fontSize: 12, color: 'var(--sand-400)', textAlign: 'center', lineHeight: 1.5 }}>
+            Você já pode agendar aulas. O pagamento pode ser configurado depois na aba Pagamento.
+          </p>
+        </div>
+
+        <BottomNav role="student" />
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -139,7 +250,7 @@ export default function StudentPayment() {
         <p className="page-title">Pagamento</p>
       </div>
 
-      {/* ─── No subscription ─── */}
+      {/* No subscription */}
       {!subscription && (
         <div className="card animate-in delay-1" style={{ textAlign: 'center', padding: 28 }}>
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>Sem plano ativo</p>
@@ -147,7 +258,7 @@ export default function StudentPayment() {
         </div>
       )}
 
-      {/* ─── Canceled subscription ─── */}
+      {/* Canceled */}
       {isCanceled && (
         <div className="card animate-in delay-1">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -160,7 +271,7 @@ export default function StudentPayment() {
         </div>
       )}
 
-      {/* ─── Active subscription info ─── */}
+      {/* Active subscription */}
       {isActive && plan && (
         <>
           {/* Billing card */}
@@ -178,7 +289,6 @@ export default function StudentPayment() {
 
             <div className="divider" />
 
-            {/* Next billing */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <Calendar size={16} color="var(--sand-500)" />
               <div>
@@ -192,16 +302,15 @@ export default function StudentPayment() {
               </div>
             </div>
 
-            {/* Status */}
             <div style={{
               padding: '10px 14px', borderRadius: 'var(--radius-md)',
-              background: isActive ? 'var(--green-50)' : 'var(--coral-bg)',
+              background: hasStripe ? 'var(--green-50)' : 'var(--coral-bg)',
               display: 'flex', alignItems: 'center', gap: 8
             }}>
-              {isActive ? <CheckCircle size={16} color="var(--green-600)" /> : <AlertCircle size={16} color="var(--coral)" />}
-              <span style={{ fontSize: 13, color: isActive ? 'var(--green-700)' : 'var(--coral)' }}>
-                {isActive ? 'Cobrança automática ativa — todo 5° dia útil do mês' : 'Pagamento pendente'}
-              </span>
+              {hasStripe
+                ? <><CheckCircle size={16} color="var(--green-600)" /><span style={{ fontSize: 13, color: 'var(--green-700)' }}>Cobrança automática ativa — todo 5° dia útil do mês</span></>
+                : <><AlertCircle size={16} color="var(--coral)" /><span style={{ fontSize: 13, color: 'var(--coral)' }}>Cartão não cadastrado — configure abaixo</span></>
+              }
             </div>
           </div>
 
@@ -216,8 +325,8 @@ export default function StudentPayment() {
                     CARD
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 14 }}>Cartão cadastrado no Stripe</p>
-                    <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>Gerenciado pelo portal de pagamento</p>
+                    <p style={{ fontSize: 14 }}>Cartão cadastrado via Stripe</p>
+                    <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>Cobrança automática mensal</p>
                   </div>
                 </div>
                 <button className="btn btn-outline" onClick={openPortal}>
@@ -232,11 +341,16 @@ export default function StudentPayment() {
                     <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--sand-600)' }}>Pagamento seguro via Stripe</p>
                   </div>
                   <p style={{ fontSize: 12, color: 'var(--sand-400)', lineHeight: 1.5 }}>
-                    Seu cartão é processado de forma segura pelo Stripe. Nenhum dado de cartão é armazenado no nosso servidor.
+                    Cartão de crédito ou débito. Cobrança automática mensal. Cancele quando quiser.
                   </p>
                 </div>
-                <button className="btn btn-primary" onClick={() => subscribe(plan.id)}>
-                  <CreditCard size={18} /> Cadastrar cartão e ativar cobrança
+                <button className="btn btn-primary" onClick={activatePayment}
+                  disabled={activatingPayment}
+                  style={{ opacity: activatingPayment ? 0.6 : 1 }}>
+                  {activatingPayment
+                    ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
+                    : <><CreditCard size={18} /> Cadastrar cartão e ativar cobrança</>
+                  }
                 </button>
               </>
             )}
@@ -249,9 +363,10 @@ export default function StudentPayment() {
               const isCurrent = plan?.id === p.id;
               return (
                 <div key={p.id}
-                  onClick={() => !isCurrent && subscribe(p.id)}
+                  onClick={() => !isCurrent && changePlan(p.id)}
                   style={{
-                    padding: '14px 18px', borderRadius: 'var(--radius-md)', marginBottom: 8, cursor: isCurrent ? 'default' : 'pointer',
+                    padding: '14px 18px', borderRadius: 'var(--radius-md)', marginBottom: 8,
+                    cursor: isCurrent ? 'default' : 'pointer',
                     border: isCurrent ? '2px solid var(--green-400)' : '1.5px solid var(--sand-200)',
                     background: isCurrent ? 'var(--green-50)' : 'white',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -296,7 +411,7 @@ export default function StudentPayment() {
         </div>
       )}
 
-      {/* Cancel subscription */}
+      {/* Cancel */}
       {isActive && (
         <div className="animate-in delay-4" style={{ marginTop: 28, marginBottom: 8 }}>
           {!showCancelConfirm ? (
@@ -307,7 +422,7 @@ export default function StudentPayment() {
             <div style={{ padding: '18px 20px', borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--coral)', background: 'var(--coral-bg)' }}>
               <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--coral)', marginBottom: 6 }}>Confirmar cancelamento?</p>
               <p style={{ fontSize: 13, color: 'var(--sand-600)', lineHeight: 1.5, marginBottom: 14 }}>
-                Ao cancelar, suas aulas agendadas serão canceladas e você perderá acesso à agenda do personal. Essa ação pode ser revertida entrando em contato com o personal.
+                Ao cancelar, suas aulas agendadas serão canceladas e você perderá acesso à agenda do personal.
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowCancelConfirm(false)}>

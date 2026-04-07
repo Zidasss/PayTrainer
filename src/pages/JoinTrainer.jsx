@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, callStripe } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { formatBRL } from '../components/Shared';
 import { Dumbbell, Check, MapPin, Copy, Share2 } from 'lucide-react';
 
@@ -42,11 +42,12 @@ export default function JoinTrainer() {
     setLoading(false);
   }
 
-  async function subscribe() {
+  async function handleSelectPlan() {
     if (!selectedPlan || !profile) return;
     setSubscribing(true);
 
     try {
+      // Create subscription record (payment pending)
       const { error: subError } = await supabase.from('subscriptions').upsert({
         student_id: profile.id,
         trainer_id: trainerId,
@@ -57,20 +58,8 @@ export default function JoinTrainer() {
 
       if (subError) throw subError;
 
-      try {
-        const data = await callStripe('create_subscription', {
-          plan_id: selectedPlan,
-          trainer_id: trainerId,
-        });
-        if (data?.url) {
-          window.location.href = data.url;
-          return;
-        }
-      } catch (stripeErr) {
-        console.log('Stripe not configured, proceeding without payment:', stripeErr.message);
-      }
-
-      nav('/student');
+      // Redirect to payment page to configure card
+      nav('/student/payment?setup=true');
     } catch (err) {
       alert('Erro: ' + err.message);
       setSubscribing(false);
@@ -160,7 +149,7 @@ export default function JoinTrainer() {
     );
   }
 
-  // ─── TRAINER viewing another trainer's link (edge case) ───
+  // ─── TRAINER viewing another trainer's link ───
   if (profile && profile.role === 'trainer' && profile.id !== trainerId) {
     return (
       <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
@@ -173,7 +162,7 @@ export default function JoinTrainer() {
     );
   }
 
-  // ─── NOT LOGGED IN → show login/signup prompt ───
+  // ─── NOT LOGGED IN ───
   if (!session) {
     return (
       <div className="page" style={{ paddingBottom: 40 }}>
@@ -203,7 +192,6 @@ export default function JoinTrainer() {
 
         <div className="animate-in delay-2" style={{ marginTop: 24 }}>
           <button className="btn btn-primary" onClick={() => {
-            // Save the join link so we can redirect back after login
             sessionStorage.setItem('joinRedirect', window.location.pathname);
             nav('/');
           }}>
@@ -221,7 +209,7 @@ export default function JoinTrainer() {
     );
   }
 
-  // ─── STUDENT: show plans and subscribe ───
+  // ─── STUDENT: pick plan then go to payment ───
   return (
     <div className="page" style={{ paddingBottom: 40 }}>
       <div className="animate-in" style={{ textAlign: 'center', paddingTop: 32, marginBottom: 28 }}>
@@ -232,8 +220,23 @@ export default function JoinTrainer() {
         <p style={{ fontSize: 14, color: 'var(--sand-500)', marginTop: 4 }}>Personal Trainer</p>
       </div>
 
+      {/* Step indicator */}
+      <div className="animate-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--green-500)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>1</div>
+          <span style={{ fontSize: 12, color: 'var(--green-600)', fontWeight: 500 }}>Plano</span>
+        </div>
+        <div style={{ width: 24, height: 2, background: 'var(--sand-200)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--sand-200)', color: 'var(--sand-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600 }}>2</div>
+          <span style={{ fontSize: 12, color: 'var(--sand-400)' }}>Pagamento</span>
+        </div>
+      </div>
+
       <div className="animate-in delay-1">
-        <p style={{ fontSize: 16, fontWeight: 500, marginBottom: 12 }}>Escolha seu plano</p>
+        <p style={{ fontSize: 16, fontWeight: 500, marginBottom: 4 }}>Escolha seu plano</p>
+        <p style={{ fontSize: 13, color: 'var(--sand-500)', marginBottom: 14 }}>Na próxima etapa você cadastra o pagamento</p>
+
         {plans.map(plan => (
           <div key={plan.id} onClick={() => setSelectedPlan(plan.id)}
             style={{
@@ -277,18 +280,14 @@ export default function JoinTrainer() {
       </div>
 
       <button className="btn btn-primary animate-in delay-3"
-        onClick={subscribe}
+        onClick={handleSelectPlan}
         disabled={!selectedPlan || subscribing}
         style={{ opacity: !selectedPlan || subscribing ? 0.6 : 1 }}>
         {subscribing
           ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
-          : 'Assinar e começar'
+          : 'Continuar para pagamento →'
         }
       </button>
-
-      <p className="animate-in delay-4" style={{ fontSize: 12, color: 'var(--sand-400)', textAlign: 'center', marginTop: 14, lineHeight: 1.5 }}>
-        Ao assinar, você autoriza a cobrança mensal recorrente no cartão cadastrado. Você pode cancelar a qualquer momento.
-      </p>
     </div>
   );
 }
