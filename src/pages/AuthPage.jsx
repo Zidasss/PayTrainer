@@ -47,7 +47,6 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (session && profile) {
@@ -58,8 +57,6 @@ export default function AuthPage() {
       }
     }
   }, [session, profile]);
-
-  useEffect(() => { setMounted(true); }, []);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -157,7 +154,7 @@ export default function AuthPage() {
 
   function BackButton({ to }) {
     return (
-      <div className={!mounted ? 'animate-in' : ''} onClick={() => typeof to === 'function' ? to() : nav(to || '/')}
+      <div className="animate-in" onClick={() => typeof to === 'function' ? to() : nav(to || '/')}
         style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--sand-500)', marginBottom: 20, padding: '8px 0' }}>
         <ArrowLeft size={18} />
         <span style={{ fontSize: 14 }}>Voltar</span>
@@ -297,7 +294,7 @@ export default function AuthPage() {
         </div>
 
         {mode === 'signup' && <PasswordStrength password={form.password} />}
-
+        
         {mode === 'login' && (
           <div className="animate-in delay-3" style={{ textAlign: 'right', marginBottom: 4 }}>
             <span onClick={() => setMode('forgot')} style={{ fontSize: 13, color: 'var(--green-500)', cursor: 'pointer' }}>Esqueceu sua senha?</span>

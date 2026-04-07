@@ -19,7 +19,7 @@ export default function OnboardingTutorial({ role, onComplete }) {
     {
       icon: Clock, color: 'var(--coral)', bg: 'var(--coral-bg)',
       title: 'Política de cancelamento',
-      desc: 'Cancele aulas com até 2 horas de antecedência. Após isso, a aula é contada do seu plano.',
+      desc: 'Cancele aulas com até 10 horas de antecedência. Após isso, a aula é contada do seu plano.',
     },
     {
       icon: CreditCard, color: 'var(--blue)', bg: 'var(--blue-bg)',
