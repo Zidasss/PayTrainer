@@ -54,14 +54,18 @@ export default function TrainerFinance() {
 
   async function openStripeDashboard() {
     try {
-      // For Stripe Connect Express, trainers use the Express Dashboard
       const data = await callStripe('check_connect_status');
       if (data.account_id) {
-        // Create a login link for the Express dashboard
-        window.open(`https://connect.stripe.com/express/${data.account_id}`, '_blank');
+        // Create a login link via edge function
+        const loginData = await callStripe('create_login_link');
+        if (loginData?.url) {
+          window.open(loginData.url, '_blank');
+          return;
+        }
       }
     } catch (err) {
-      alert('Erro ao abrir painel: ' + err.message);
+      // Fallback: open Stripe dashboard
+      window.open('https://dashboard.stripe.com/', '_blank');
     }
   }
 

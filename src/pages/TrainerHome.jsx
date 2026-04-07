@@ -19,15 +19,26 @@ export default function TrainerHome() {
 
   useEffect(() => { loadData(); }, []);
 
-  async function loadData() {
+ async function loadData() {
     const trainerId = profile.id;
 
-    // Check Stripe
+    // Check Stripe - auto verify if has account but not marked complete
     const { data: trainer } = await supabase
       .from('trainers')
-      .select('stripe_onboarding_complete')
+      .select('stripe_onboarding_complete, stripe_account_id')
       .eq('id', trainerId).single();
-    setStripeReady(trainer?.stripe_onboarding_complete || false);
+
+    if (trainer?.stripe_account_id && !trainer?.stripe_onboarding_complete) {
+      // Auto-check with Stripe if onboarding is complete
+      try {
+        const data = await callStripe('check_connect_status');
+        setStripeReady(data?.complete || false);
+      } catch (e) {
+        setStripeReady(false);
+      }
+    } else {
+      setStripeReady(trainer?.stripe_onboarding_complete || false);
+    }
 
     // Plans count
     const { data: plans } = await supabase

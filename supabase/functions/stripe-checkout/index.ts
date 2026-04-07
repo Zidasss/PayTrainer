@@ -1,6 +1,3 @@
-// supabase/functions/stripe-checkout/index.ts
-// Uses Stripe REST API directly (no SDK) for Supabase Edge Functions compatibility
-
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
@@ -14,7 +11,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper to call Stripe REST API
 async function stripe(endpoint: string, params: Record<string, any> = {}, method = 'POST') {
   const body = new URLSearchParams();
   flattenParams(params, body);
@@ -33,7 +29,6 @@ async function stripe(endpoint: string, params: Record<string, any> = {}, method
   return data;
 }
 
-// Stripe expects nested params as form-encoded: metadata[key]=value
 function flattenParams(obj: any, params: URLSearchParams, prefix = '') {
   for (const [key, val] of Object.entries(obj)) {
     const fullKey = prefix ? `${prefix}[${key}]` : key;
@@ -53,7 +48,6 @@ function flattenParams(obj: any, params: URLSearchParams, prefix = '') {
   }
 }
 
-// GET request to Stripe
 async function stripeGet(endpoint: string) {
   const res = await fetch(`${STRIPE_API}${endpoint}`, {
     method: 'GET',
@@ -133,6 +127,23 @@ serve(async (req) => {
       });
     }
 
+    // ─── TRAINER: Create Express Dashboard login link ───
+    if (action === 'create_login_link') {
+      const { data: trainer } = await supabase
+        .from('trainers')
+        .select('stripe_account_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!trainer?.stripe_account_id) throw new Error('No Stripe account');
+
+      const loginLink = await stripe(`/accounts/${trainer.stripe_account_id}/login_links`, {});
+
+      return new Response(JSON.stringify({ url: loginLink.url }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // ─── STUDENT: Create subscription checkout ───
     if (action === 'create_subscription') {
       const { plan_id, trainer_id } = params;
@@ -154,7 +165,6 @@ serve(async (req) => {
       const trainerStripeId = trainer?.stripe_account_id;
       if (!trainerStripeId) throw new Error('Trainer not set up for payments');
 
-      // Create or retrieve Stripe customer
       let { data: sub } = await supabase
         .from('subscriptions')
         .select('stripe_customer_id')
@@ -171,7 +181,6 @@ serve(async (req) => {
         customerId = customer.id;
       }
 
-      // Create Stripe price if not exists
       let stripePriceId = plan.stripe_price_id;
       if (!stripePriceId) {
         const product = await stripe('/products', {
