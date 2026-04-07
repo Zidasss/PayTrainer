@@ -1,15 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Dumbbell, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, session, profile } = useAuth();
+  const nav = useNavigate();
   const [mode, setMode] = useState('login'); // login | signup
   const [role, setRole] = useState(null);     // student | trainer
   const [form, setForm] = useState({ email: '', password: '', fullName: '', phone: '' });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Check for join redirect after login
+  useEffect(() => {
+    if (session && profile) {
+      const redirect = sessionStorage.getItem('joinRedirect');
+      if (redirect) {
+        sessionStorage.removeItem('joinRedirect');
+        nav(redirect);
+      }
+    }
+  }, [session, profile]);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -20,9 +33,21 @@ export default function AuthPage() {
     try {
       if (mode === 'login') {
         await signIn({ email: form.email, password: form.password });
+        // Check for redirect
+        const redirect = sessionStorage.getItem('joinRedirect');
+        if (redirect) {
+          sessionStorage.removeItem('joinRedirect');
+          // Small delay to let profile load
+          setTimeout(() => nav(redirect), 500);
+        }
       } else {
         if (!role) { setError('Selecione seu perfil'); setLoading(false); return; }
         await signUp({ ...form, role });
+        const redirect = sessionStorage.getItem('joinRedirect');
+        if (redirect) {
+          sessionStorage.removeItem('joinRedirect');
+          setTimeout(() => nav(redirect), 500);
+        }
       }
     } catch (err) {
       setError(err.message === 'Invalid login credentials'
@@ -32,8 +57,17 @@ export default function AuthPage() {
     setLoading(false);
   }
 
+  // ─── Check if coming from join link → default to signup as student ───
+  const hasJoinRedirect = !!sessionStorage.getItem('joinRedirect');
+
   // ─── Splash / Role selection for signup ───
   if (mode === 'signup' && !role) {
+    // If coming from join link, auto-select student
+    if (hasJoinRedirect) {
+      setRole('student');
+      return null;
+    }
+
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '100dvh', paddingBottom: 40 }}>
         <div className="animate-in">
@@ -78,7 +112,9 @@ export default function AuthPage() {
           <Dumbbell size={28} color="white" />
         </div>
         <p className="page-title">FitAgenda</p>
-        <p className="page-subtitle">{mode === 'login' ? 'Entre na sua conta' : 'Crie sua conta'}</p>
+        <p className="page-subtitle">
+          {mode === 'login' ? 'Entre na sua conta' : `Crie sua conta${hasJoinRedirect ? ' de aluno' : ''}`}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>

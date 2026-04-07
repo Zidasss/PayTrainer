@@ -27,6 +27,13 @@ function ProtectedRoute({ children, requiredRole }) {
 function AuthRoute() {
   const { session, profile, loading } = useAuth();
   if (loading) return <LoadingScreen />;
+
+  // Don't redirect if there's a join redirect pending
+  const joinRedirect = sessionStorage.getItem('joinRedirect');
+  if (session && profile && joinRedirect) {
+    return <Navigate to={joinRedirect} replace />;
+  }
+
   if (session && profile) {
     return <Navigate to={profile.role === 'trainer' ? '/trainer' : '/student'} replace />;
   }
@@ -40,9 +47,9 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/" element={<AuthRoute />} />
-          <Route path="/join/:trainerId" element={
-            <ProtectedRoute><JoinTrainer /></ProtectedRoute>
-          } />
+
+          {/* Join - accessible to everyone (component handles auth states) */}
+          <Route path="/join/:trainerId" element={<JoinTrainer />} />
 
           {/* Student */}
           <Route path="/student" element={
