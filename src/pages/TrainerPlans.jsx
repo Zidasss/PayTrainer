@@ -73,8 +73,8 @@ export default function TrainerPlans() {
   async function deletePlan(id) {
     if (!confirm('Tem certeza que deseja excluir este plano?')) return;
     await supabase.from('plans').update({ active: false }).eq('id', id);
+    setPlans(prev => prev.filter(p => p.id !== id));
     showToast('Plano removido');
-    loadPlans();
   }
 
   return (
