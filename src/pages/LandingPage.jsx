@@ -127,7 +127,7 @@ export default function LandingPage() {
         padding: '20px 24px 32px', borderTop: '1px solid var(--sand-100)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
       }}>
-        <img src="/cloudhead-logo.svg" alt="Cloudhead" style={{ width: 22, height: 22 }} />
+        <img src="/cloudhead-logo.svg" alt="Cloudhead" style={{ width: 28, height: 28 }} />
         <span style={{ fontSize: 12, color: 'var(--sand-400)' }}>Feito por <span style={{ fontWeight: 500, color: 'var(--sand-500)' }}>Cloudhead</span></span>
       </div>
     </div>
