@@ -47,6 +47,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (session && profile) {
@@ -57,6 +58,8 @@ export default function AuthPage() {
       }
     }
   }, [session, profile]);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -154,7 +157,7 @@ export default function AuthPage() {
 
   function BackButton({ to }) {
     return (
-      <div onClick={() => typeof to === 'function' ? to() : nav(to || '/')}
+      <div className={!mounted ? 'animate-in' : ''} onClick={() => typeof to === 'function' ? to() : nav(to || '/')}
         style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--sand-500)', marginBottom: 20, padding: '8px 0' }}>
         <ArrowLeft size={18} />
         <span style={{ fontSize: 14 }}>Voltar</span>
