@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { PasswordStrength } from '../components/PasswordStrength';
+import { getPasswordStrength } from '../lib/validation';
 import { Lock, CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function ResetPassword() {
@@ -16,6 +18,11 @@ export default function ResetPassword() {
     if (password.length < 6) { setError('A senha deve ter no mínimo 6 caracteres'); return; }
     setError('');
     setLoading(true);
+
+    if (getPasswordStrength(password).score < 3) {
+      setError('Senha muito fraca. Use letras maiúsculas, números e caracteres especiais.');
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.updateUser({ password });
@@ -64,6 +71,8 @@ export default function ResetPassword() {
           </div>
         </div>
 
+        <PasswordStrength password={password} />
+        
         {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
         <button type="submit" className="btn btn-primary animate-in delay-2" disabled={loading}
