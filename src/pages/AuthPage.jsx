@@ -150,8 +150,8 @@ export default function AuthPage() {
 
   function PoweredBy() {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 28, opacity: 0.5 }}>
-        <CloudheadLogo size={18} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 28, opacity: 0.6 }}>
+        <img src="/cloudhead-logo.svg" alt="Cloudhead" style={{ width: 22, height: 22, borderRadius: '50%' }} />
         <span style={{ fontSize: 11, color: 'var(--sand-400)' }}>por Cloudhead</span>
       </div>
     );
