@@ -163,6 +163,9 @@ export default function TrainerFinance() {
       {monthPayments.length > 0 && (
         <div className="animate-in delay-4" style={{ marginTop: 24 }}>
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 12 }}>Pagamentos recebidos</p>
+          <p style={{ fontSize: 11, color: 'var(--sand-400)' }}>
+          Previsto na conta em {new Date(new Date(p.paid_at).getTime() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')}
+        </p>
           {monthPayments.map(p => (
             <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--sand-100)' }}>
               <div>

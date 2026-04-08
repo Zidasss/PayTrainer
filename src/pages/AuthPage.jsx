@@ -274,7 +274,7 @@ export default function AuthPage() {
             </div>
             <div className="animate-in delay-1" style={{ marginBottom: 14 }}>
               <label className="input-label">Telefone</label>
-              <input className="input-field" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: formatPhone(e.target.value) }))} placeholder="(11) 99999-9999" type="tel" />
+              <input className="input-field" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: formatPhone(e.target.value) }))} placeholder="(11) 99999-9999" type="tel" required />
             </div>
           </>
         )}

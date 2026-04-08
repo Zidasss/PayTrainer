@@ -121,7 +121,12 @@ export default function LandingPage() {
           Sem taxas de cadastro. Sem compromisso.
         </p>
       </div>
-
+      
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 12 }}>
+          <span onClick={() => nav('/legal?tab=privacy')} style={{ fontSize: 12, color: 'var(--sand-400)', cursor: 'pointer', textDecoration: 'underline' }}>Privacidade</span>
+          <span onClick={() => nav('/legal?tab=terms')} style={{ fontSize: 12, color: 'var(--sand-400)', cursor: 'pointer', textDecoration: 'underline' }}>Termos de Uso</span>
+      </div>
+      
       {/* Footer with Cloudhead branding */}
       <div style={{
         padding: '20px 24px 32px', borderTop: '1px solid var(--sand-100)',

@@ -25,9 +25,8 @@ export default function Feedback() {
     setSending(true);
 
     try {
-      // Store feedback in a simple table or send via edge function
-      // For MVP, we'll insert into a feedback table
-      const { error } = await supabase.from('feedback').insert({
+      // Save to database
+      await supabase.from('feedback').insert({
         user_id: profile.id,
         user_name: profile.full_name,
         user_role: profile.role,
@@ -35,15 +34,26 @@ export default function Feedback() {
         message: message.trim(),
       });
 
-      // If table doesn't exist, just log it
-      if (error && error.code === '42P01') {
-        console.log('Feedback (table not created):', { category, message: message.trim(), user: profile.full_name });
+      // Send email notification via edge function
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await supabase.functions.invoke('send-feedback-email', {
+          body: {
+            userName: profile.full_name,
+            userEmail: session?.user?.email || 'N/A',
+            userRole: profile.role === 'trainer' ? 'Personal' : 'Aluno',
+            category: categories.find(c => c.id === category)?.label || category,
+            message: message.trim(),
+          },
+        });
+      } catch (emailErr) {
+        console.log('Email notification not configured:', emailErr.message);
       }
 
       setSent(true);
     } catch (err) {
       console.error(err);
-      setSent(true); // Show success anyway for MVP
+      setSent(true);
     }
     setSending(false);
   }
@@ -57,7 +67,7 @@ export default function Feedback() {
           </div>
           <p className="page-title">Obrigado!</p>
           <p className="page-subtitle" style={{ marginBottom: 24, lineHeight: 1.5 }}>
-            Seu feedback foi recebido. Estamos sempre buscando melhorar o Stride para você.
+            Seu feedback foi recebido e será analisado pela equipe Cloudhead. Responderemos o mais breve possível.
           </p>
           <button className="btn btn-primary" onClick={() => nav(-1)}>Voltar</button>
         </div>
@@ -77,7 +87,6 @@ export default function Feedback() {
         </div>
       </div>
 
-      {/* Category selection */}
       <div className="animate-in delay-1" style={{ marginBottom: 20 }}>
         <label className="input-label" style={{ marginBottom: 10 }}>Tipo de feedback</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -98,7 +107,6 @@ export default function Feedback() {
         </div>
       </div>
 
-      {/* Message */}
       <form onSubmit={handleSubmit}>
         <div className="animate-in delay-2" style={{ marginBottom: 20 }}>
           <label className="input-label">Sua mensagem</label>
@@ -119,7 +127,7 @@ export default function Feedback() {
       </form>
 
       <p className="animate-in delay-4" style={{ fontSize: 12, color: 'var(--sand-400)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
-        Seu feedback é anônimo e será analisado pela equipe Cloudhead.
+        Seu feedback será analisado pela equipe Cloudhead e responderemos o mais breve possível.
       </p>
     </div>
   );

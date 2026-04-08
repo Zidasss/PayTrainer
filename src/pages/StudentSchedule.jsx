@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { callStripe } from '../lib/supabase';
 import { BottomNav, getWeekDates, DAYS_PT, formatBRL } from '../components/Shared';
 import { createNotification } from '../lib/notifications';
-import { ChevronLeft, ChevronRight, MapPin, Check, Clock, X, AlertTriangle, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Check, Clock, X, AlertTriangle, Info, CalendarDays } from 'lucide-react';
 
 export default function StudentSchedule() {
   const { profile } = useAuth();
@@ -140,6 +140,18 @@ async function cancelBooking(bookingId) {
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
+  }
+
+  function addToCalendar(booking) {
+    const date = booking.booking_date;
+    const start = booking.start_time.slice(0, 5);
+    const endH = (parseInt(start) + 1).toString().padStart(2, '0');
+    const title = 'Treino presencial - Stride';
+    const location = booking.location || '';
+    const startISO = `${date}T${start}:00`.replace(/[-:]/g, '');
+    const endISO = `${date}T${endH}:00:00`.replace(/[-:]/g, '');
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startISO}/${endISO}&location=${encodeURIComponent(location)}`;
+    window.open(url, '_blank');
   }
 
   const plan = subscription?.plans;
@@ -398,16 +410,21 @@ async function cancelBooking(bookingId) {
                       </p>
                     )}
                   </div>
-                  {cancelable ? (
-                    <div onClick={() => setShowCancelConfirm(b.id)}
-                      style={{ cursor: 'pointer', padding: 6, color: 'var(--sand-400)' }}>
-                      <X size={18} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div onClick={() => addToCalendar(b)} style={{ cursor: 'pointer', padding: 6, color: 'var(--green-500)' }}>
+                      <CalendarDays size={16} />
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--sand-400)' }}>
-                      <AlertTriangle size={12} /> Bloqueado
-                    </div>
-                  )}
+                    {cancelable ? (
+                      <div onClick={() => setShowCancelConfirm(b.id)}
+                        style={{ cursor: 'pointer', padding: 6, color: 'var(--sand-400)' }}>
+                        <X size={18} />
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--sand-400)' }}>
+                        <AlertTriangle size={12} /> Bloqueado
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Cancel confirmation */}

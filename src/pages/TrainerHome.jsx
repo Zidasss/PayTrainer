@@ -117,9 +117,6 @@ export default function TrainerHome() {
         </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <NotificationBell />
-            <div onClick={signOut} style={{ cursor: 'pointer', padding: 6 }}>
-              <LogOut size={20} color="var(--sand-400)" />
-            </div>
             <Avatar name={profile?.full_name} size="md" bg="var(--blue-bg)" color="var(--blue)" />
           </div>
      </div>   
@@ -247,6 +244,9 @@ export default function TrainerHome() {
           </div>
         </div>
       </div>
+      <button className="btn btn-danger animate-in delay-4" style={{ marginTop: 12 }} onClick={signOut}>
+        <LogOut size={18} /> Sair da conta
+      </button>
       <BottomNav role="trainer" />
     </div>
   );
