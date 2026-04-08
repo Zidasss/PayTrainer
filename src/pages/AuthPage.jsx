@@ -217,6 +217,15 @@ export default function AuthPage() {
           <p className="page-subtitle" style={{ marginBottom: 28 }}>Selecione seu perfil</p>
         </div>
 
+        <div className="animate-in delay-1" style={{ marginBottom: 16 }}>
+          <GoogleButton label="Cadastrar com Google" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--sand-200)' }} />
+            <span style={{ fontSize: 12, color: 'var(--sand-400)' }}>ou cadastre com email</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--sand-200)' }} />
+          </div>
+        </div>
+
         <div className="animate-in delay-1" onClick={() => setRole('student')}
           style={{ cursor: 'pointer', padding: 20, borderRadius: 'var(--radius-lg)', border: '1.5px solid var(--sand-200)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--green-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -306,6 +315,14 @@ export default function AuthPage() {
         <button type="submit" className="btn btn-primary animate-in delay-4" disabled={loading} style={{ marginTop: 12, opacity: loading ? 0.7 : 1 }}>
           {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} /> : <>{mode === 'login' ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} /></>}
         </button>
+        {mode === 'signup' && (
+        <p style={{ fontSize: 11, color: 'var(--sand-400)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+          Ao criar sua conta, você concorda com os{' '}
+          <span onClick={() => nav('/legal?tab=terms')} style={{ color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>Termos de Uso</span>
+          {' '}e a{' '}
+          <span onClick={() => nav('/legal?tab=privacy')} style={{ color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>Política de Privacidade</span>.
+        </p>
+      )}
       </form>
 
       <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--sand-500)', marginTop: 20 }}>

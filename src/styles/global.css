@@ -94,6 +94,7 @@ a { text-decoration: none; color: inherit; -webkit-tap-highlight-color: transpar
   -webkit-tap-highlight-color: transparent;
 }
 .btn:active { transform: scale(0.98); }
+.btn:hover { filter: brightness(1.05); }
 
 .btn-primary {
   background: var(--green-500);
@@ -265,3 +266,4 @@ a { text-decoration: none; color: inherit; -webkit-tap-highlight-color: transpar
   min-height: 100dvh;
   gap: 16px;
 }
+

@@ -92,10 +92,10 @@ export default function LandingPage() {
       </div>
 
       {/* For trainers */}
-      <div style={{
-        margin: '0 24px', padding: '24px 20px', borderRadius: 'var(--radius-lg)',
-        background: 'var(--sand-50)', marginBottom: 24,
-      }}>
+        <div className="animate-in" style={{
+          margin: '0 24px', padding: '24px 20px', borderRadius: 'var(--radius-lg)',
+          background: 'var(--sand-50)', marginBottom: 24,
+        }}>
         <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--green-500)', marginBottom: 4 }}>
           Para personal trainers
         </p>
@@ -113,7 +113,7 @@ export default function LandingPage() {
       </div>
 
       {/* CTA */}
-      <div style={{ padding: '0 24px 24px', textAlign: 'center' }}>
+      <div className="animate-in" style={{ padding: '0 24px 24px', textAlign: 'center' }}>
         <button className="btn btn-primary" onClick={() => nav('/auth?mode=signup')} style={{ marginBottom: 12 }}>
           Criar conta gratuita
         </button>
