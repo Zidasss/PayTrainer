@@ -47,6 +47,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     if (session && profile) {
@@ -65,6 +66,11 @@ export default function AuthPage() {
     setError('');
     setLoading(true);
     try {
+      if (mode === 'signup' && !acceptedTerms) {
+        setError('Você precisa aceitar os Termos de Uso e Política de Privacidade');
+        setLoading(false);
+        return;
+      }
       if (mode === 'login') {
         await signIn({ email: form.email, password: form.password });
         const redirect = sessionStorage.getItem('joinRedirect');
@@ -311,7 +317,22 @@ export default function AuthPage() {
         )}
 
         {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12, marginTop: 8 }}>{error}</p>}
-
+        
+        {mode === 'signup' && (
+          <div className="animate-in delay-4" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12 }}>
+            <div onClick={() => setAcceptedTerms(!acceptedTerms)}
+              style={{ width: 20, height: 20, borderRadius: 4, border: acceptedTerms ? 'none' : '1.5px solid var(--sand-300)', background: acceptedTerms ? 'var(--green-500)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}>
+              {acceptedTerms && <span style={{ color: 'white', fontSize: 12, fontWeight: 700 }}>✓</span>}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--sand-500)', lineHeight: 1.5 }}>
+              Li e concordo com os{' '}
+              <span onClick={() => nav('/legal?tab=terms')} style={{ color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>Termos de Uso</span>
+              {' '}e a{' '}
+              <span onClick={() => nav('/legal?tab=privacy')} style={{ color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>Política de Privacidade</span>
+            </p>
+          </div>
+        )}
+        
         <button type="submit" className="btn btn-primary animate-in delay-4" disabled={loading} style={{ marginTop: 12, opacity: loading ? 0.7 : 1 }}>
           {loading ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} /> : <>{mode === 'login' ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} /></>}
         </button>

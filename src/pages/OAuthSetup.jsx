@@ -10,6 +10,7 @@ export default function OAuthSetup() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const userName = session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || '';
 
@@ -80,8 +81,21 @@ export default function OAuthSetup() {
           </div>
         </div>
 
+        <div className="animate-in delay-3" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+          <div onClick={() => setAcceptedTerms(!acceptedTerms)}
+            style={{ width: 20, height: 20, borderRadius: 4, border: acceptedTerms ? 'none' : '1.5px solid var(--sand-300)', background: acceptedTerms ? 'var(--green-500)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}>
+            {acceptedTerms && <span style={{ color: 'white', fontSize: 12, fontWeight: 700 }}>✓</span>}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--sand-500)', lineHeight: 1.5 }}>
+            Li e concordo com os{' '}
+            <span onClick={() => window.open('/legal?tab=terms', '_blank')} style={{ color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>Termos de Uso</span>
+            {' '}e a{' '}
+            <span onClick={() => window.open('/legal?tab=privacy', '_blank')} style={{ color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>Política de Privacidade</span>
+          </p>
+        </div>
+
         <button className="btn btn-primary animate-in delay-3" onClick={handleContinue}
-          disabled={!role} style={{ opacity: !role ? 0.6 : 1 }}>
+          disabled={!role || !acceptedTerms} style={{ opacity: !role || !acceptedTerms ? 0.6 : 1 }}>
           Continuar <ArrowRight size={18} />
         </button>
       </div>
