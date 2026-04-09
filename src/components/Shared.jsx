@@ -10,6 +10,7 @@ export function BottomNav({ role }) {
     { path: '/trainer/schedule', icon: CalendarDays, label: 'Agenda' },
     { path: '/trainer/students', icon: Users, label: 'Alunos' },
     { path: '/trainer/finance', icon: DollarSign, label: 'Finanças' },
+    { path: '/trainer/profile', icon: User, label: 'Perfil' },
   ] : [
     { path: '/student', icon: Home, label: 'Início' },
     { path: '/student/schedule', icon: CalendarDays, label: 'Agenda' },

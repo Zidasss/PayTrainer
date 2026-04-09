@@ -4,10 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
 import { NotificationBell } from '../components/NotificationBell';
-import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, LogOut, MessageSquare, Settings } from 'lucide-react';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList,  Settings } from 'lucide-react';
 
 export default function TrainerHome() {
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const nav = useNavigate();
   const [stats, setStats] = useState({ students: 0, revenue: 0, today: 0 });
   const [todayBookings, setTodayBookings] = useState([]);
@@ -235,18 +235,6 @@ export default function TrainerHome() {
           ))}
         </div>
       )}
-      <div className="animate-in delay-4" style={{ marginTop: 20 }}>
-        <div onClick={() => nav('/feedback')} className="card" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <MessageSquare size={18} color="var(--sand-500)" />
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 500 }}>Feedback & Suporte</p>
-            <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>Envie sugestões ou reporte problemas</p>
-          </div>
-        </div>
-      </div>
-      <button className="btn btn-danger animate-in delay-4" style={{ marginTop: 12 }} onClick={signOut}>
-        <LogOut size={18} /> Sair da conta
-      </button>
       <BottomNav role="trainer" />
     </div>
   );

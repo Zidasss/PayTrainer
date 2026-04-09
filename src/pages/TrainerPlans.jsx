@@ -21,6 +21,7 @@ export default function TrainerPlans() {
       .from('plans')
       .select('*')
       .eq('trainer_id', profile.id)
+      .eq('active', true)
       .order('sessions_per_week');
     setPlans(data || []);
   }

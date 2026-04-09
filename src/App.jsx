@@ -18,6 +18,7 @@ import TrainerPlans from './pages/TrainerPlans';
 import JoinTrainer from './pages/JoinTrainer';
 import OnboardingTutorial from './components/OnboardingTutorial';
 import Notifications from './pages/Notifications';
+import TrainerProfile from './pages/TrainerProfile';
 import Legal from './pages/Legal';
 import { useState, useEffect } from 'react';
 
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="/trainer/students" element={<ProtectedRoute requiredRole="trainer"><TrainerStudents /></ProtectedRoute>} />
           <Route path="/trainer/finance" element={<ProtectedRoute requiredRole="trainer"><TrainerFinance /></ProtectedRoute>} />
           <Route path="/trainer/plans" element={<ProtectedRoute requiredRole="trainer"><TrainerPlans /></ProtectedRoute>} />
+          <Route path="/trainer/profile" element={<ProtectedRoute requiredRole="trainer"><TrainerProfile /></ProtectedRoute>} />
 
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/legal" element={<Legal />} />
