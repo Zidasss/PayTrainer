@@ -47,7 +47,7 @@ export default function OnboardingTutorial({ role, onComplete }) {
     },
     {
       icon: CreditCard, color: 'var(--blue)', bg: 'var(--blue-bg)',
-      title: 'Configure o Stripe (importante!)',
+      title: 'Configure o Stripe',
       desc: 'O Stripe é nosso parceiro de pagamentos. Configure sua conta bancária por lá — é assim que você recebe. Quando o aluno pagar, em até 2 dias úteis o valor cai na sua conta. Sem essa configuração, o aluno não consegue cadastrar o cartão.',
     },
     {

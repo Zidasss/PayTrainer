@@ -13,7 +13,7 @@ export default function Legal() {
         <div onClick={() => nav(-1)} style={{ cursor: 'pointer', padding: 4 }}>
           <ArrowLeft size={22} />
         </div>
-        <p className="page-title">{tab === 'privacy' ? 'Política de Privacidade' : 'Termos de Uso'}</p>
+        <p key={tab} className="page-title animate-in">{tab === 'privacy' ? 'Política de Privacidade' : 'Termos de Uso'}</p>
       </div>
 
       {/* Tabs */}
@@ -28,7 +28,7 @@ export default function Legal() {
         </div>
       </div>
 
-      <div className="animate-in delay-2" style={{ fontSize: 14, color: 'var(--sand-600)', lineHeight: 1.8 }}>
+      <div key={tab} className="animate-in delay-2" style={{ fontSize: 14, color: 'var(--sand-600)', lineHeight: 1.8 }}>
         {tab === 'privacy' ? <PrivacyContent /> : <TermsContent />}
       </div>
 
