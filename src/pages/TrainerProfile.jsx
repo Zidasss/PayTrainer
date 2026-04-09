@@ -4,13 +4,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BottomNav, Avatar } from '../components/Shared';
 import { formatPhone, isValidPhone } from '../lib/validation';
-import { LogOut, Save, Phone, FileText, MessageSquare, Shield } from 'lucide-react';
+import { LogOut, Save, Phone, FileText, MessageSquare, Shield, Mail, User } from 'lucide-react';
 
 export default function TrainerProfile() {
-  const { profile, signOut, fetchProfile } = useAuth();
+  const { profile, signOut, fetchProfile, session } = useAuth();
   const nav = useNavigate();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
@@ -19,6 +20,7 @@ export default function TrainerProfile() {
     if (profile) {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
+      setEmail(session?.user?.email || '');
       loadBio();
     }
   }, [profile]);
@@ -53,6 +55,14 @@ export default function TrainerProfile() {
         .eq('id', profile.id);
       if (profileError) throw profileError;
 
+      // Update email in auth if changed
+      const currentEmail = session?.user?.email;
+      if (email && email !== currentEmail) {
+        const { error: emailError } = await supabase.auth.updateUser({ email });
+        if (emailError) throw emailError;
+        showToast('Email de confirmação enviado para o novo endereço');
+      }
+
       // Update trainers table (bio)
       const { error: trainerError } = await supabase
         .from('trainers')
@@ -63,7 +73,9 @@ export default function TrainerProfile() {
       // Refresh profile in context
       if (fetchProfile) await fetchProfile(profile.id);
 
-      showToast('Perfil atualizado!');
+      if (!email || email === currentEmail) {
+        showToast('Perfil atualizado!');
+      }
     } catch (err) {
       showToast('Erro: ' + err.message);
     }
@@ -76,21 +88,30 @@ export default function TrainerProfile() {
         <p className="page-title">Perfil</p>
       </div>
 
-      {/* Avatar + name */}
+      {/* Avatar */}
       <div className="animate-in delay-1" style={{ textAlign: 'center', marginBottom: 24 }}>
         <Avatar name={profile?.full_name} size="lg" bg="var(--blue-bg)" color="var(--blue)" />
         <p style={{ fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 600, marginTop: 12 }}>{profile?.full_name}</p>
         <p style={{ fontSize: 13, color: 'var(--sand-500)', marginTop: 2 }}>Personal Trainer</p>
       </div>
 
-      {/* Edit form */}
-      <div className="animate-in delay-2" style={{ marginBottom: 16 }}>
-        <label className="input-label">Nome completo</label>
+      {/* Editable fields */}
+      <div className="animate-in delay-2" style={{ marginBottom: 14 }}>
+        <label className="input-label"><User size={12} style={{ display: 'inline', marginRight: 4 }} />Nome completo</label>
         <input className="input-field" value={fullName} onChange={e => setFullName(e.target.value)}
-          placeholder="Seu nome" />
+          placeholder="Seu nome completo" />
       </div>
 
-      <div className="animate-in delay-2" style={{ marginBottom: 16 }}>
+      <div className="animate-in delay-2" style={{ marginBottom: 14 }}>
+        <label className="input-label"><Mail size={12} style={{ display: 'inline', marginRight: 4 }} />Email</label>
+        <input className="input-field" value={email} onChange={e => setEmail(e.target.value)}
+          placeholder="seu@email.com" type="email" />
+        <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>
+          Alterar o email exigirá confirmação no novo endereço.
+        </p>
+      </div>
+
+      <div className="animate-in delay-2" style={{ marginBottom: 14 }}>
         <label className="input-label"><Phone size={12} style={{ display: 'inline', marginRight: 4 }} />Telefone</label>
         <input className="input-field" value={phone}
           onChange={e => setPhone(formatPhone(e.target.value))}
@@ -112,22 +133,6 @@ export default function TrainerProfile() {
         {saving ? <div className="spinner" style={{ width: 20, height: 20, borderTopColor: 'white' }} />
           : <><Save size={16} /> Salvar alterações</>}
       </button>
-
-      {/* Info card */}
-      <div className="animate-in delay-3" style={{
-        borderRadius: 'var(--radius-lg)', overflow: 'hidden',
-        border: '1px solid var(--sand-100)', marginBottom: 20,
-      }}>
-        {[
-          ['Email', profile?.id ? '••••@••••' : '—'],
-          ['Perfil', 'Personal Trainer'],
-        ].map(([label, value], i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < 1 ? '1px solid var(--sand-100)' : 'none' }}>
-            <span style={{ fontSize: 14, color: 'var(--sand-500)' }}>{label}</span>
-            <span style={{ fontSize: 14 }}>{value}</span>
-          </div>
-        ))}
-      </div>
 
       {/* Links */}
       <div className="animate-in delay-3" style={{ marginBottom: 12 }}
