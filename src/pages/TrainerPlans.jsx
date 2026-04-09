@@ -16,7 +16,7 @@ export default function TrainerPlans() {
 
   useEffect(() => { loadPlans(); }, []);
 
-  async function loadPlans() {
+async function loadPlans() {
     const { data } = await supabase
       .from('plans')
       .select('*')
@@ -72,11 +72,15 @@ export default function TrainerPlans() {
   }
 
   async function deletePlan(id) {
-    if (!confirm('Tem certeza que deseja excluir este plano?')) return;
-    await supabase.from('plans').update({ active: false }).eq('id', id);
-    setPlans(prev => prev.filter(p => p.id !== id));
-    showToast('Plano removido');
-  }
+      if (!confirm('Tem certeza que deseja excluir este plano?')) return;
+      const { error } = await supabase.from('plans').delete().eq('id', id);
+      if (error) {
+        alert('Erro ao deletar: ' + JSON.stringify(error));
+        return;
+      }
+      setPlans(prev => prev.filter(p => p.id !== id));
+      showToast('Plano removido');
+    }
 
   return (
     <div className="page" style={{ paddingBottom: 40 }}>
