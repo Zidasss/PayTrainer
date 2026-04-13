@@ -63,11 +63,13 @@ export default function StudentProfile() {
         showToast('Confirmação enviada para o novo email');
       }
 
-      if (subscription && (location || null) !== (subscription.preferred_location || null)) {
-        const { error: locError } = await supabase.from('subscriptions')
+      if (subscription) {
+        console.log('Saving location:', location, 'Sub ID:', subscription.id);
+        const { data, error: locError } = await supabase.from('subscriptions')
           .update({ preferred_location: location || null })
-          .eq('id', subscription.id);
-        if (locError) showToast('Erro ao salvar local: ' + locError.message);
+          .eq('id', subscription.id)
+          .select();
+        console.log('Location result:', data, 'Error:', locError);
       }
 
       if (fetchProfile) await fetchProfile(profile.id);
