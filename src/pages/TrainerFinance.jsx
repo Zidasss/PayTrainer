@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
-import { BottomNav, Avatar, formatBRL } from '../components/Shared';
-import { TrendingUp, ArrowDownRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { BottomNav, Avatar, formatBRL, ConfirmModal } from '../components/Shared';
+import { TrendingUp, ArrowDownRight, ExternalLink, RefreshCw } from 'lucide-react';
 
 export default function TrainerFinance() {
   const { profile } = useAuth();
