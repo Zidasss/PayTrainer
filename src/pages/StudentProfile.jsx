@@ -44,9 +44,12 @@ export default function StudentProfile() {
     setTimeout(() => setToast(''), 3000);
   }
 
-  async function saveProfile() {
+async function saveProfile() {
     if (!fullName.trim()) { showToast('Nome é obrigatório'); return; }
     if (phone && !isValidPhone(phone)) { showToast('Telefone inválido'); return; }
+
+    setSaving(true);
+    console.log('SAVE CALLED', { subscription: !!subscription, location });
 
     setSaving(true);
     try {
