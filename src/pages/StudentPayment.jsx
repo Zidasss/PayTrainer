@@ -38,6 +38,7 @@ export default function StudentPayment() {
         .select('*')
         .eq('trainer_id', sub.trainer_id)
         .eq('active', true)
+        .or(`student_id.is.null,student_id.eq.${profile.id}`)
         .order('sessions_per_week');
       setPlans(trainerPlans || []);
 

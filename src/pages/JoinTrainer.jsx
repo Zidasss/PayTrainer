@@ -36,6 +36,7 @@ export default function JoinTrainer() {
       .select('*')
       .eq('trainer_id', trainerId)
       .eq('active', true)
+      .or(`student_id.is.null${user?.id ? `,student_id.eq.${user.id}` : ''}`)
       .order('sessions_per_week');
 
     setPlans(trainerPlans || []);

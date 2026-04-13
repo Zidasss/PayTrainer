@@ -2,35 +2,45 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { formatBRL } from '../components/Shared';
-import { Plus, Trash2, Save, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, Save, ArrowLeft, User, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function TrainerPlans() {
   const { profile } = useAuth();
   const nav = useNavigate();
   const [plans, setPlans] = useState([]);
+  const [students, setStudents] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', sessions_per_week: 2, price: '', description: '' });
+  const [form, setForm] = useState({ name: '', sessions_per_week: 2, price: '', description: '', student_id: '' });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
 
-  useEffect(() => { loadPlans(); }, []);
+  useEffect(() => { loadPlans(); loadStudents(); }, []);
 
-async function loadPlans() {
+  async function loadPlans() {
     const { data } = await supabase
       .from('plans')
-      .select('*')
+      .select('*, profiles!plans_student_id_fkey(full_name)')
       .eq('trainer_id', profile.id)
       .eq('active', true)
       .order('sessions_per_week');
     setPlans(data || []);
   }
 
+  async function loadStudents() {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('student_id, profiles!subscriptions_student_id_fkey(full_name)')
+      .eq('trainer_id', profile.id)
+      .in('status', ['active', 'past_due']);
+    setStudents(data || []);
+  }
+
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
-  function startNew() {
-    setEditing('new');
-    setForm({ name: '', sessions_per_week: 2, price: '', description: '' });
+  function startNew(type) {
+    setEditing(type === 'custom' ? 'new-custom' : 'new');
+    setForm({ name: '', sessions_per_week: 2, price: '', description: '', student_id: '' });
   }
 
   function startEdit(plan) {
@@ -40,11 +50,16 @@ async function loadPlans() {
       sessions_per_week: plan.sessions_per_week,
       price: (plan.price_cents / 100).toString(),
       description: plan.description || '',
+      student_id: plan.student_id || '',
     });
   }
 
   async function savePlan() {
     if (!form.name || !form.price) return;
+    if ((editing === 'new-custom' || form.student_id) && !form.student_id) {
+      showToast('Selecione um aluno para o plano customizado');
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -53,10 +68,11 @@ async function loadPlans() {
       sessions_per_week: parseInt(form.sessions_per_week),
       price_cents: Math.round(parseFloat(form.price) * 100),
       description: form.description,
+      student_id: form.student_id || null,
       active: true,
     };
 
-    if (editing === 'new') {
+    if (editing === 'new' || editing === 'new-custom') {
       const { error } = await supabase.from('plans').insert(payload);
       if (error) { showToast('Erro: ' + error.message); }
       else showToast('Plano criado!');
@@ -72,15 +88,18 @@ async function loadPlans() {
   }
 
   async function deletePlan(id) {
-      if (!confirm('Tem certeza que deseja excluir este plano?')) return;
-      const { error } = await supabase.from('plans').delete().eq('id', id);
-      if (error) {
-        alert('Erro ao deletar: ' + JSON.stringify(error));
-        return;
-      }
-      setPlans(prev => prev.filter(p => p.id !== id));
-      showToast('Plano removido');
+    if (!confirm('Tem certeza que deseja excluir este plano?')) return;
+    const { error } = await supabase.from('plans').delete().eq('id', id);
+    if (error) {
+      showToast('Erro ao deletar: ' + error.message);
+      return;
     }
+    setPlans(prev => prev.filter(p => p.id !== id));
+    showToast('Plano removido');
+  }
+
+  const publicPlans = plans.filter(p => !p.student_id);
+  const customPlans = plans.filter(p => !!p.student_id);
 
   return (
     <div className="page" style={{ paddingBottom: 40 }}>
@@ -94,9 +113,15 @@ async function loadPlans() {
         </div>
       </div>
 
-      {/* Existing plans */}
+      {/* Public plans */}
       <div className="animate-in delay-1">
-        {plans.filter(p => p.active).map(plan => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <Users size={16} color="var(--green-500)" />
+          <p style={{ fontSize: 14, fontWeight: 500 }}>Planos padrão</p>
+          <span style={{ fontSize: 11, color: 'var(--sand-400)' }}>Visíveis para todos</span>
+        </div>
+
+        {publicPlans.map(plan => (
           <div key={plan.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div onClick={() => startEdit(plan)} style={{ cursor: 'pointer', flex: 1 }}>
               <p style={{ fontSize: 15, fontWeight: 500 }}>{plan.name}</p>
@@ -110,14 +135,76 @@ async function loadPlans() {
             </div>
           </div>
         ))}
+
+        {publicPlans.length === 0 && !editing && (
+          <div style={{ padding: '16px 18px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>Nenhum plano padrão criado ainda.</p>
+          </div>
+        )}
       </div>
+
+      {/* Custom plans */}
+      {(customPlans.length > 0 || students.length > 0) && (
+        <div className="animate-in delay-2" style={{ marginTop: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <User size={16} color="var(--blue)" />
+            <p style={{ fontSize: 14, fontWeight: 500 }}>Planos customizados</p>
+            <span style={{ fontSize: 11, color: 'var(--sand-400)' }}>Por aluno</span>
+          </div>
+
+          {customPlans.map(plan => (
+            <div key={plan.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '3px solid var(--blue)' }}>
+              <div onClick={() => startEdit(plan)} style={{ cursor: 'pointer', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--blue)', background: 'var(--blue-bg)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 500 }}>
+                    {plan.profiles?.full_name || 'Aluno'}
+                  </span>
+                </div>
+                <p style={{ fontSize: 15, fontWeight: 500 }}>{plan.name}</p>
+                <p style={{ fontSize: 13, color: 'var(--sand-500)', marginTop: 2 }}>
+                  {plan.sessions_per_week}x/semana — {formatBRL(plan.price_cents)}
+                </p>
+                {plan.description && <p style={{ fontSize: 12, color: 'var(--sand-400)', marginTop: 2 }}>{plan.description}</p>}
+              </div>
+              <div onClick={() => deletePlan(plan.id)} style={{ cursor: 'pointer', padding: 8, color: 'var(--coral)' }}>
+                <Trash2 size={18} />
+              </div>
+            </div>
+          ))}
+
+          {customPlans.length === 0 && (
+            <div style={{ padding: '16px 18px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
+              <p style={{ fontSize: 13, color: 'var(--sand-500)' }}>Nenhum plano customizado. Crie um para oferecer condições especiais a um aluno específico.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Edit / Create form */}
       {editing && (
         <div className="card animate-in" style={{ marginTop: 16 }}>
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 14 }}>
-            {editing === 'new' ? 'Novo plano' : 'Editar plano'}
+            {editing === 'new' ? 'Novo plano padrão' : editing === 'new-custom' ? 'Novo plano customizado' : 'Editar plano'}
           </p>
+
+          {/* Student selector for custom plans */}
+          {(editing === 'new-custom' || form.student_id) && (
+            <div style={{ marginBottom: 12 }}>
+              <label className="input-label"><User size={12} style={{ display: 'inline', marginRight: 4 }} />Aluno</label>
+              <select className="input-field" value={form.student_id}
+                onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))}>
+                <option value="">Selecione um aluno</option>
+                {students.map(s => (
+                  <option key={s.student_id} value={s.student_id}>
+                    {s.profiles?.full_name || 'Aluno'}
+                  </option>
+                ))}
+              </select>
+              <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>
+                Este plano será visível apenas para o aluno selecionado.
+              </p>
+            </div>
+          )}
 
           <div style={{ marginBottom: 12 }}>
             <label className="input-label">Nome do plano</label>
@@ -159,19 +246,27 @@ async function loadPlans() {
         </div>
       )}
 
+      {/* Action buttons */}
       {!editing && (
-        <button className="btn btn-primary animate-in delay-2" style={{ marginTop: 16 }} onClick={startNew}>
-          <Plus size={18} /> Criar novo plano
-        </button>
+        <div className="animate-in delay-2" style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button className="btn btn-primary" onClick={() => startNew('public')}>
+            <Plus size={18} /> Criar plano padrão
+          </button>
+          {students.length > 0 && (
+            <button className="btn btn-outline" onClick={() => startNew('custom')}>
+              <User size={18} /> Criar plano para aluno específico
+            </button>
+          )}
+        </div>
       )}
 
-      {/* Default plans hint */}
+      {/* Hint */}
       {plans.length === 0 && !editing && (
         <div className="animate-in delay-3" style={{ marginTop: 20, padding: '16px 20px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)' }}>
           <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--green-700)', marginBottom: 6 }}>Dica: comece criando seus planos</p>
           <p style={{ fontSize: 13, color: 'var(--green-600)', lineHeight: 1.5 }}>
             Exemplo: 2x na semana (R$ 700), 3x na semana (R$ 900), 4x na semana (R$ 1.000).
-            Os alunos poderão ver e assinar esses planos diretamente pelo app.
+            Depois, se precisar, crie planos customizados com valores diferentes para alunos específicos.
           </p>
         </div>
       )}
