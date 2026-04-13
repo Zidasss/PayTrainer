@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
-import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
+import { BottomNav, Avatar, formatBRL, DAYS_PT, ConfirmModal } from '../components/Shared';
 import { NotificationBell } from '../components/NotificationBell';
 import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList,  Settings } from 'lucide-react';
 
