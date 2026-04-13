@@ -53,18 +53,15 @@ export default function TrainerFinance() {
   }
 
   async function openStripeDashboard() {
+    const confirmed = confirm('Você será redirecionado para o painel do Stripe, onde pode consultar saldos e transferências. Deseja continuar?');
+    if (!confirmed) return;
     try {
-      const data = await callStripe('check_connect_status');
-      if (data.account_id) {
-        // Create a login link via edge function
-        const loginData = await callStripe('create_login_link');
-        if (loginData?.url) {
-          window.open(loginData.url, '_blank');
-          return;
-        }
+      const loginData = await callStripe('create_login_link');
+      if (loginData?.url) {
+        window.open(loginData.url, '_blank');
+        return;
       }
     } catch (err) {
-      // Fallback: open Stripe dashboard
       window.open('https://dashboard.stripe.com/', '_blank');
     }
   }
@@ -163,15 +160,15 @@ export default function TrainerFinance() {
       {monthPayments.length > 0 && (
         <div className="animate-in delay-4" style={{ marginTop: 24 }}>
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 12 }}>Pagamentos recebidos</p>
-          <p style={{ fontSize: 11, color: 'var(--sand-400)' }}>
-          Previsto na conta em {new Date(new Date(p.paid_at).getTime() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR')}
-        </p>
           {monthPayments.map(p => (
             <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--sand-100)' }}>
               <div>
                 <p style={{ fontSize: 14 }}>{p.profiles?.full_name || 'Aluno'}</p>
                 <p style={{ fontSize: 12, color: 'var(--sand-400)', marginTop: 2 }}>
                   {p.description} • {p.paid_at ? new Date(p.paid_at).toLocaleDateString('pt-BR') : '—'}
+                </p>
+                <p style={{ fontSize: 11, color: 'var(--green-500)', marginTop: 2 }}>
+                  Previsto na conta em {p.paid_at ? new Date(new Date(p.paid_at).getTime() + 2 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR') : '—'}
                 </p>
               </div>
               <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--green-600)' }}>
