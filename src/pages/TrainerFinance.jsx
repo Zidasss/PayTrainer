@@ -193,7 +193,10 @@ export default function TrainerFinance() {
         onConfirm={openStripeDashboard}
         onCancel={() => setShowStripeConfirm(false)}
       /> 
+
       <BottomNav role="trainer" />
     </div>
   );
 }
+
+[]
