@@ -139,7 +139,13 @@ async function saveProfile() {
 
           <div className="animate-in" style={{ marginBottom: 16 }}>
             <label className="input-label"><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} />Local preferido de treino</label>
-            <input className="input-field" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: Smart Fit Paulista" />
+            {subscription ? (
+              <input className="input-field" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: Smart Fit Paulista" />
+            ) : (
+              <p style={{ fontSize: 13, color: 'var(--sand-400)', fontStyle: 'italic', padding: '12px 0' }}>
+                Para registrar um local de treino, primeiro assine um plano com seu personal trainer.
+              </p>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
