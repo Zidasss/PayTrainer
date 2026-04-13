@@ -19,6 +19,8 @@ export default function StudentSchedule() {
   const [toast, setToast] = useState('');
   const [cancelingId, setCancelingId] = useState(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(null);
+  const [extraPrice, setExtraPrice] = useState(15000);
+  const [allowExtras, setAllowExtras] = useState(true);
 
   const weekDates = getWeekDates(weekOffset);
   const times = ['06:00','07:00','08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00','18:00','19:00'];
@@ -33,10 +35,18 @@ export default function StudentSchedule() {
       .eq('status', 'active')
       .limit(1);
 
-    const sub = subs?.[0];
+  const sub = subs?.[0];
     setSub(sub);
     if (!sub) return;
 
+    const { data: trainerData } = await supabase
+      .from('trainers')
+      .select('extra_class_price')
+      .eq('id', sub.trainer_id)
+      .single();
+    if (trainerData?.extra_class_price) setExtraPrice(trainerData.extra_class_price);
+
+    setAllowExtras(trainerData?.allow_extra_classes !== false);
     setLocation(sub.preferred_location || '');
 
     const { data: avail } = await supabase
@@ -134,7 +144,18 @@ async function cancelBooking(bookingId) {
   function toggleSlot(date, time) {
     if (isPast(date, time)) return;
     const key = `${date.toISOString().split('T')[0]}_${time}`;
-    setSelected(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+
+    setSelected(prev => {
+      if (prev.includes(key)) return prev.filter(k => k !== key);
+      // Check if this would be an extra class
+      const newSelected = [...prev, key];
+      const wouldBeExtra = newSelected.length > remainingPlan;
+      if (wouldBeExtra && !allowExtras) {
+        showToast('Aulas extras estão desativadas pelo seu personal');
+        return prev;
+      }
+      return newSelected;
+    });
   }
 
   function showToast(msg) {
@@ -362,7 +383,12 @@ async function cancelBooking(bookingId) {
             )}
             {extraSlots.length > 0 && (
               <p style={{ fontSize: 13, color: 'var(--coral)' }}>
-                + {extraSlots.length} aula(s) extra — R$ 150,00 cada
+                + {extraSlots.length} aula(s) extra — {formatBRL(extraPrice)} cada
+              </p>
+            )}
+            {!allowExtras && remainingPlan === 0 && (
+              <p style={{ fontSize: 12, color: 'var(--sand-400)', fontStyle: 'italic', marginBottom: 8 }}>
+                Aulas extras não estão disponíveis no momento.
               </p>
             )}
           </div>

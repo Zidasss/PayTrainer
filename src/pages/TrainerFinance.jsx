@@ -16,9 +16,17 @@ export default function TrainerFinance() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => { loadData(); }, [month]);
+  useEffect(() => {
+    if (!profile?.id) return;
+    loadData();
+  }, [month, profile?.id]);
 
   async function loadData() {
+    if (!profile?.id) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const trainerId = profile.id;
 
