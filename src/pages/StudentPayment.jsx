@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
-import { BottomNav, formatBRL } from '../components/Shared';
+import { BottomNav, formatBRL, ConfirmModal } from '../components/Shared';
 import { CreditCard, CheckCircle, AlertCircle, ExternalLink, Calendar, XCircle, Shield, ArrowRight } from 'lucide-react';
 
 export default function StudentPayment() {
@@ -10,7 +10,7 @@ export default function StudentPayment() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const isSetup = searchParams.get('setup') === 'true';
-
+  const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [subscription, setSub] = useState(null);
   const [payments, setPayments] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -71,13 +71,11 @@ export default function StudentPayment() {
   async function changePlan(planId) {
     setChangingPlan(planId);
     try {
-      // Update subscription locally
       await supabase
         .from('subscriptions')
         .update({ plan_id: planId })
         .eq('id', subscription.id);
 
-      // If has Stripe, redirect to new checkout
       try {
         const data = await callStripe('create_subscription', {
           plan_id: planId,
@@ -85,7 +83,6 @@ export default function StudentPayment() {
         });
         if (data.url) window.location.href = data.url;
       } catch (e) {
-        // Stripe not available, just update locally
         loadData();
       }
     } catch (err) {
@@ -221,7 +218,7 @@ export default function StudentPayment() {
 
         {/* Action buttons */}
         <div className="animate-in delay-3" style={{ marginTop: 16 }}>
-          <button className="btn btn-primary" onClick={activatePayment}
+          <button className="btn btn-primary" onClick={() => setShowPayConfirm(true)}
             disabled={activatingPayment}
             style={{ opacity: activatingPayment ? 0.6 : 1, marginBottom: 10 }}>
             {activatingPayment
@@ -238,6 +235,16 @@ export default function StudentPayment() {
             Você já pode agendar aulas. O pagamento pode ser configurado depois na aba Pagamento.
           </p>
         </div>
+
+        <ConfirmModal
+          show={showPayConfirm}
+          title="Cadastrar pagamento"
+          message="Você será redirecionado para o Stripe, nosso parceiro de pagamentos, para cadastrar seu cartão de forma segura. Nenhum dado do cartão é armazenado pelo Stride."
+          confirmText="Continuar"
+          cancelText="Agora não"
+          onConfirm={() => { setShowPayConfirm(false); activatePayment(); }}
+          onCancel={() => setShowPayConfirm(false)}
+        />
 
         <BottomNav role="student" />
       </div>
@@ -344,7 +351,7 @@ export default function StudentPayment() {
                     Cartão de crédito ou débito. Cobrança automática mensal. Cancele quando quiser.
                   </p>
                 </div>
-                <button className="btn btn-primary" onClick={activatePayment}
+                <button className="btn btn-primary" onClick={() => setShowPayConfirm(true)}
                   disabled={activatingPayment}
                   style={{ opacity: activatingPayment ? 0.6 : 1 }}>
                   {activatingPayment
@@ -437,6 +444,16 @@ export default function StudentPayment() {
           )}
         </div>
       )}
+
+      <ConfirmModal
+        show={showPayConfirm}
+        title="Cadastrar pagamento"
+        message="Você será redirecionado para o Stripe, nosso parceiro de pagamentos, para cadastrar seu cartão de forma segura. Nenhum dado do cartão é armazenado pelo Stride."
+        confirmText="Continuar"
+        cancelText="Agora não"
+        onConfirm={() => { setShowPayConfirm(false); activatePayment(); }}
+        onCancel={() => setShowPayConfirm(false)}
+      />
 
       <BottomNav role="student" />
     </div>

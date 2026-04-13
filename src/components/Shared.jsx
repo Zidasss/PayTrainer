@@ -70,3 +70,25 @@ export function getWeekDates(weekOffset = 0) {
 }
 
 export const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+export function ConfirmModal({ show, title, message, onConfirm, onCancel, confirmText = 'Continuar', cancelText = 'Cancelar' }) {
+  if (!show) return null;
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 300,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+    }} onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} className="animate-in" style={{
+        background: 'white', borderRadius: 'var(--radius-lg)', padding: '28px 24px',
+        maxWidth: 360, width: '100%', textAlign: 'center',
+      }}>
+        <p style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>{title}</p>
+        <p style={{ fontSize: 14, color: 'var(--sand-500)', lineHeight: 1.6, marginBottom: 20 }}>{message}</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={onCancel} style={{ flex: 1, padding: 12 }}>{cancelText}</button>
+          <button className="btn btn-primary" onClick={onConfirm} style={{ flex: 1, padding: 12 }}>{confirmText}</button>
+        </div>
+      </div>
+    </div>
+  );
+}

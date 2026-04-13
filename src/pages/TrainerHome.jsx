@@ -17,6 +17,7 @@ export default function TrainerHome() {
   const [inviteLink, setInviteLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [plansCount, setPlansCount] = useState(0);
+  const [showStripeConfirm, setShowStripeConfirm] = useState(false);
 
 useEffect(() => {
     loadData();
@@ -100,15 +101,14 @@ useEffect(() => {
   }
 
   async function setupStripe() {
-      const confirmed = confirm('Você será redirecionado para o Stripe, nosso parceiro de pagamentos, para configurar sua conta bancária. Deseja continuar?');
-      if (!confirmed) return;
-      try {
-        const data = await callStripe('create_connect_account');
-        if (data.url) window.location.href = data.url;
-      } catch (err) {
-        alert('Erro: ' + err.message);
-      }
+    setShowStripeConfirm(false);
+    try {
+      const data = await callStripe('create_connect_account');
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      alert('Erro: ' + err.message);
     }
+  }
 
   async function handleLocation(bookingId, status) {
     await supabase.from('bookings').update({ location_status: status }).eq('id', bookingId);
@@ -136,7 +136,7 @@ useEffect(() => {
 
       {/* Stripe setup banner */}
       {!stripeReady && (
-        <div className="animate-in" onClick={setupStripe}
+        <div className="animate-in" onClick={() => setShowStripeConfirm(true)}
           style={{ background: 'var(--coral-bg)', borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
           <AlertCircle size={20} color="var(--coral)" />
           <div style={{ flex: 1 }}>
@@ -248,6 +248,16 @@ useEffect(() => {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        show={showStripeConfirm}
+        title="Configurar recebimento"
+        message="Você será redirecionado para o Stripe, nosso parceiro de pagamentos, para configurar sua conta bancária e começar a receber."
+        confirmText="Ir para o Stripe"
+        cancelText="Agora não"
+        onConfirm={setupStripe}
+        onCancel={() => setShowStripeConfirm(false)}
+      />
       <BottomNav role="trainer" />
     </div>
   );

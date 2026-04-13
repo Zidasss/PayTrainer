@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL } from '../components/Shared';
 import { TrendingUp, ArrowDownRight, ExternalLink, RefreshCw } from 'lucide-react';
+import { BottomNav, Avatar, formatBRL, ConfirmModal } from '../components/Shared';
 
 export default function TrainerFinance() {
   const { profile } = useAuth();
@@ -11,7 +12,8 @@ export default function TrainerFinance() {
   const [stripeReady, setStripeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(() => {
-    const now = new Date();
+  const [showStripeConfirm, setShowStripeConfirm] = useState(false);  
+  const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
@@ -53,18 +55,17 @@ export default function TrainerFinance() {
   }
 
   async function openStripeDashboard() {
-    const confirmed = confirm('Você será redirecionado para o painel do Stripe, onde pode consultar saldos e transferências. Deseja continuar?');
-    if (!confirmed) return;
-    try {
-      const loginData = await callStripe('create_login_link');
-      if (loginData?.url) {
-        window.open(loginData.url, '_blank');
-        return;
+      setShowStripeConfirm(false);
+      try {
+        const loginData = await callStripe('create_login_link');
+        if (loginData?.url) {
+          window.open(loginData.url, '_blank');
+          return;
+        }
+      } catch (err) {
+        window.open('https://dashboard.stripe.com/', '_blank');
       }
-    } catch (err) {
-      window.open('https://dashboard.stripe.com/', '_blank');
     }
-  }
 
   const totalRevenue = students.reduce((sum, s) => sum + (s.plans?.price_cents || 0), 0);
   const platformFee = Math.round(totalRevenue * 0.08);
@@ -109,7 +110,7 @@ export default function TrainerFinance() {
 
       {/* Stripe dashboard button */}
       {stripeReady && (
-        <button className="btn btn-outline animate-in delay-2" onClick={openStripeDashboard} style={{ marginBottom: 16 }}>
+        <button className="btn btn-outline animate-in delay-2" onClick={() => setShowStripeConfirm(true)} style={{ marginBottom: 16 }}>
           <TrendingUp size={18} /> Painel Stripe <ExternalLink size={14} />
         </button>
       )}
@@ -184,6 +185,15 @@ export default function TrainerFinance() {
         </div>
       )}
 
+       <ConfirmModal
+        show={showStripeConfirm}
+        title="Abrir painel Stripe"
+        message="Você será redirecionado para o painel do Stripe, onde pode consultar saldos, transferências e dados bancários."
+        confirmText="Abrir Stripe"
+        cancelText="Cancelar"
+        onConfirm={openStripeDashboard}
+        onCancel={() => setShowStripeConfirm(false)}
+      /> 
       <BottomNav role="trainer" />
     </div>
   );
