@@ -18,7 +18,18 @@ export default function TrainerHome() {
   const [copied, setCopied] = useState(false);
   const [plansCount, setPlansCount] = useState(0);
 
-  useEffect(() => { loadData(); }, []);
+useEffect(() => {
+    loadData();
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true' || params.get('refresh') === 'true') {
+      callStripe('check_connect_status').then(data => {
+        if (data?.complete) {
+          setStripeReady(true);
+          window.history.replaceState({}, '', '/trainer');
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
  async function loadData() {
     const trainerId = profile.id;
@@ -89,13 +100,15 @@ export default function TrainerHome() {
   }
 
   async function setupStripe() {
-    try {
-      const data = await callStripe('create_connect_account');
-      if (data.url) window.location.href = data.url;
-    } catch (err) {
-      alert('Erro: ' + err.message);
+      const confirmed = confirm('Você será redirecionado para o Stripe, nosso parceiro de pagamentos, para configurar sua conta bancária. Deseja continuar?');
+      if (!confirmed) return;
+      try {
+        const data = await callStripe('create_connect_account');
+        if (data.url) window.location.href = data.url;
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
     }
-  }
 
   async function handleLocation(bookingId, status) {
     await supabase.from('bookings').update({ location_status: status }).eq('id', bookingId);
