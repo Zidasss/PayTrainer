@@ -21,6 +21,7 @@ import Notifications from './pages/Notifications';
 import TrainerProfile from './pages/TrainerProfile';
 import Legal from './pages/Legal';
 import TrainerPublic from './pages/TrainerPublic';
+import PWAInstallBanner from './components/PWAInstallBanner';
 import { useState, useEffect } from 'react';
 
 function ProtectedRoute({ children, requiredRole }) {
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
           
         </Routes>
+        <PWAInstallBanner />
       </AuthProvider>
     </BrowserRouter>
   );

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT, ConfirmModal } from '../components/Shared';
 import { NotificationBell } from '../components/NotificationBell';
-import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, Star, Settings } from 'lucide-react';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, Settings, Star } from 'lucide-react';
 
 export default function TrainerHome() {
   const { profile } = useAuth();
