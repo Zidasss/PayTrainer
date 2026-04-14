@@ -2,20 +2,19 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { BottomNav, Avatar } from '../components/Shared';
+import { BottomNav, Avatar, formatBRL } from '../components/Shared';
 import { formatPhone, isValidPhone } from '../lib/validation';
-import { LogOut, Save, Phone, FileText, MessageSquare, Shield, Mail, User, Pencil, DollarSign } from 'lucide-react';
+import { LogOut, Save, Phone, MessageSquare, Shield, Mail, User, Pencil, MapPin } from 'lucide-react';
 
-export default function TrainerProfile() {
+export default function StudentProfile() {
   const { profile, signOut, fetchProfile, session } = useAuth();
   const nav = useNavigate();
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [bio, setBio] = useState('');
-  const [extraClassPrice, setExtraClassPrice] = useState('');
-  const [allowExtraClasses, setAllowExtraClasses] = useState(true);
+  const [subscription, setSub] = useState(null);
+  const [location, setLocation] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -24,34 +23,25 @@ export default function TrainerProfile() {
       setFullName(profile.full_name || '');
       setPhone(profile.phone || '');
       setEmail(session?.user?.email || '');
-      loadTrainerData();
+      loadSubscription();
     }
   }, [profile]);
 
-  async function loadTrainerData() {
-    const { data } = await supabase
-      .from('trainers')
-      .select('bio, extra_class_price, allow_extra_classes')
-      .eq('id', profile.id)
-      .single();
-    setBio(data?.bio || '');
-    setExtraClassPrice(data?.extra_class_price ? (data.extra_class_price / 100).toString() : '');
-    setAllowExtraClasses(data?.allow_extra_classes !== false);
+  async function loadSubscription() {
+    const { data: subs } = await supabase
+      .from('subscriptions')
+      .select('*, plans(*), trainers(*, profiles(full_name))')
+      .eq('student_id', profile.id)
+      .eq('status', 'active')
+      .limit(1);
+    const sub = subs?.[0];
+    setSub(sub);
+    setLocation(sub?.preferred_location || '');
   }
 
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
-  }
-
-  async function toggleExtraClasses() {
-    const newValue = !allowExtraClasses;
-    setAllowExtraClasses(newValue);
-    await supabase
-      .from('trainers')
-      .update({ allow_extra_classes: newValue })
-      .eq('id', profile.id);
-    showToast(newValue ? 'Aulas extras liberadas' : 'Aulas extras bloqueadas');
   }
 
   async function saveProfile() {
@@ -73,19 +63,11 @@ export default function TrainerProfile() {
         showToast('Confirmação enviada para o novo email');
       }
 
-      const trainerUpdate = {
-        bio: bio.trim() || null,
-        allow_extra_classes: allowExtraClasses,
-      };
-      if (extraClassPrice) {
-        trainerUpdate.extra_class_price = Math.round(parseFloat(extraClassPrice) * 100);
+      if (subscription && location !== subscription.preferred_location) {
+        await supabase.from('subscriptions')
+          .update({ preferred_location: location })
+          .eq('id', subscription.id);
       }
-
-      const { error: trainerError } = await supabase
-        .from('trainers')
-        .update(trainerUpdate)
-        .eq('id', profile.id);
-      if (trainerError) throw trainerError;
 
       if (fetchProfile) await fetchProfile(profile.id);
 
@@ -104,11 +86,12 @@ export default function TrainerProfile() {
     setFullName(profile.full_name || '');
     setPhone(profile.phone || '');
     setEmail(session?.user?.email || '');
-    loadTrainerData();
+    setLocation(subscription?.preferred_location || '');
     setEditing(false);
   }
 
-  const extraPriceDisplay = extraClassPrice ? `R$ ${parseFloat(extraClassPrice).toFixed(2).replace('.', ',')}` : 'Não definido';
+  const plan = subscription?.plans;
+  const trainerName = subscription?.trainers?.profiles?.full_name;
 
   return (
     <div className="page">
@@ -124,36 +107,9 @@ export default function TrainerProfile() {
 
       {/* Avatar */}
       <div className="animate-in delay-1" style={{ textAlign: 'center', marginBottom: 24 }}>
-        <Avatar name={profile?.full_name} size="lg" bg="var(--blue-bg)" color="var(--blue)" />
+        <Avatar name={profile?.full_name} size="lg" />
         <p style={{ fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 600, marginTop: 12 }}>{fullName || profile?.full_name}</p>
-        <p style={{ fontSize: 13, color: 'var(--sand-500)', marginTop: 2 }}>Personal Trainer</p>
-      </div>
-
-      {/* Extra classes toggle - always visible */}
-      <div className="animate-in delay-2" style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '16px 18px', borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--sand-100)', marginBottom: 16,
-      }}>
-        <div>
-          <p style={{ fontSize: 14, fontWeight: 500 }}>Aulas extras</p>
-          <p style={{ fontSize: 12, color: 'var(--sand-400)', marginTop: 2 }}>
-            {allowExtraClasses ? 'Alunos podem agendar além do plano' : 'Bloqueado para todos os alunos'}
-          </p>
-        </div>
-        <div onClick={toggleExtraClasses} style={{
-          width: 48, height: 28, borderRadius: 14, cursor: 'pointer',
-          background: allowExtraClasses ? 'var(--green-500)' : 'var(--sand-300)',
-          position: 'relative', transition: 'background 0.2s',
-        }}>
-          <div style={{
-            width: 22, height: 22, borderRadius: '50%', background: 'white',
-            position: 'absolute', top: 3,
-            left: allowExtraClasses ? 23 : 3,
-            transition: 'left 0.2s',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-          }} />
-        </div>
+        {plan && <p style={{ fontSize: 13, color: 'var(--sand-500)', marginTop: 2 }}>{plan.name}</p>}
       </div>
 
       {/* Fields */}
@@ -173,23 +129,11 @@ export default function TrainerProfile() {
           <div className="animate-in" style={{ marginBottom: 14 }}>
             <label className="input-label"><Phone size={12} style={{ display: 'inline', marginRight: 4 }} />Telefone</label>
             <input className="input-field" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="(11) 99999-9999" type="tel" />
-            <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>Seus alunos poderão ver este número para contato.</p>
-          </div>
-
-          <div className="animate-in" style={{ marginBottom: 14 }}>
-            <label className="input-label"><DollarSign size={12} style={{ display: 'inline', marginRight: 4 }} />Valor da aula extra (R$)</label>
-            <input className="input-field" value={extraClassPrice} onChange={e => setExtraClassPrice(e.target.value)}
-              placeholder="150,00" type="number" step="0.01" />
-            <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>
-              Valor cobrado quando o aluno agendar aulas além do plano.
-            </p>
           </div>
 
           <div className="animate-in" style={{ marginBottom: 16 }}>
-            <label className="input-label"><FileText size={12} style={{ display: 'inline', marginRight: 4 }} />Sobre você</label>
-            <textarea className="input-field" value={bio} onChange={e => setBio(e.target.value)}
-              placeholder="Ex: CREF 012345-G/SP. Especialista em hipertrofia e emagrecimento."
-              rows={3} style={{ resize: 'vertical', minHeight: 80, lineHeight: 1.5 }} />
+            <label className="input-label"><MapPin size={12} style={{ display: 'inline', marginRight: 4 }} />Local preferido de treino</label>
+            <input className="input-field" value={location} onChange={e => setLocation(e.target.value)} placeholder="Ex: Smart Fit Paulista" />
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -207,12 +151,13 @@ export default function TrainerProfile() {
             ['Nome', fullName || '—'],
             ['Email', email || '—'],
             ['Telefone', phone || 'Não informado'],
-            ['Aula extra', extraPriceDisplay],
-            ['Sobre', bio || 'Não informado'],
+            ['Personal', trainerName || 'Nenhum'],
+            ['Plano', plan ? `${plan.name} — ${formatBRL(plan.price_cents)}` : 'Sem plano'],
+            ['Local de treino', location || 'Não informado'],
           ].map(([label, value], i, arr) => (
             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--sand-100)' : 'none', alignItems: 'flex-start' }}>
               <span style={{ fontSize: 14, color: 'var(--sand-500)', flexShrink: 0 }}>{label}</span>
-              <span style={{ fontSize: 14, textAlign: 'right', marginLeft: 12, wordBreak: 'break-word', color: value === 'Não informado' || value === 'Não definido' ? 'var(--sand-400)' : undefined, fontStyle: value === 'Não informado' || value === 'Não definido' ? 'italic' : undefined }}>{value}</span>
+              <span style={{ fontSize: 14, textAlign: 'right', marginLeft: 12, wordBreak: 'break-word', color: value === 'Não informado' || value === 'Nenhum' || value === 'Sem plano' ? 'var(--sand-400)' : undefined, fontStyle: value === 'Não informado' || value === 'Nenhum' ? 'italic' : undefined }}>{value}</span>
             </div>
           ))}
         </div>
@@ -251,7 +196,7 @@ export default function TrainerProfile() {
         }}>{toast}</div>
       )}
 
-      <BottomNav role="trainer" />
+      <BottomNav role="student" />
     </div>
   );
 }
