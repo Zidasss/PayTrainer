@@ -99,7 +99,7 @@ export default function App() {
 
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/legal" element={<Legal />} />
-          <Route path="/t/:trainerId" element={<TrainerPublic />} />
+          <Route path="/t/:slug" element={<TrainerPublic />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           
         </Routes>
