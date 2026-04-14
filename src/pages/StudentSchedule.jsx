@@ -246,11 +246,19 @@ async function cancelBooking(bookingId) {
 
       {/* Week usage indicator */}
       {plan && (
-        <div className="animate-in" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', marginBottom: 14 }}>
+        <div className="animate-in" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', marginBottom: remainingPlan === 0 && !allowExtras ? 6 : 14 }}>
           <Info size={16} color="var(--green-600)" />
           <span style={{ fontSize: 13, color: 'var(--green-700)' }}>
             {weeklyCount} de {maxPerWeek} aulas usadas esta semana
             {remainingPlan > 0 && ` · ${remainingPlan} restante(s)`}
+          </span>
+        </div>
+      )}
+      {plan && remainingPlan === 0 && !allowExtras && (
+        <div className="animate-in" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--coral-bg)', borderRadius: 'var(--radius-md)', marginBottom: 14 }}>
+          <AlertTriangle size={16} color="var(--coral)" />
+          <span style={{ fontSize: 13, color: 'var(--coral)' }}>
+            Você atingiu o limite semanal. Aulas extras não estão disponíveis no momento.
           </span>
         </div>
       )}
