@@ -20,7 +20,7 @@ import OnboardingTutorial from './components/OnboardingTutorial';
 import Notifications from './pages/Notifications';
 import TrainerProfile from './pages/TrainerProfile';
 import Legal from './pages/Legal';
-import PWAInstallBanner from './components/PWAInstallBanner';
+import PWAInstallBanner from './components/PWAInstallerBanner';
 import TrainerPublic from './pages/TrainerPublic';
 import { useState, useEffect } from 'react';
 
