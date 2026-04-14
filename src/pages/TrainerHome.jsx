@@ -18,6 +18,7 @@ export default function TrainerHome() {
   const [copied, setCopied] = useState(false);
   const [plansCount, setPlansCount] = useState(0);
   const [showStripeConfirm, setShowStripeConfirm] = useState(false);
+  const [copiedPublic, setCopiedPublic] = useState(false);
 
 useEffect(() => {
     if (!profile?.id) return;
@@ -216,22 +217,24 @@ useEffect(() => {
       </div>
 
       {/* Public profile link */}
-        <div className="animate-in delay-2 card" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-          <Star size={18} color="var(--green-500)" />
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, fontWeight: 500 }}>Agenda pública</p>
-            <p style={{ fontSize: 11, color: 'var(--sand-400)', wordBreak: 'break-all' }}>
-              {window.location.origin}/t/{profile?.slug || profile?.full_name?.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}
-            </p>
-          </div>
-          <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
-            onClick={() => {
-              const s = profile?.slug || profile?.full_name?.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
-              navigator.clipboard.writeText(`${window.location.origin}/t/${s}`);
-            }}>
-            Copiar
-          </button>
+      <div className="animate-in delay-2 card" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+        <Zap size={18} color="var(--green-500)" />
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 13, fontWeight: 500 }}>Agenda pública</p>
+          <p style={{ fontSize: 11, color: 'var(--sand-400)', wordBreak: 'break-all' }}>
+            {window.location.origin}/t/{profile?.slug || profile?.full_name?.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '')}
+          </p>
         </div>
+        <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
+          onClick={() => {
+            const s = profile?.slug || profile?.full_name?.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+            navigator.clipboard.writeText(`${window.location.origin}/t/${s}`);
+            setCopiedPublic(true);
+            setTimeout(() => setCopiedPublic(false), 2000);
+          }}>
+          {copiedPublic ? '✓ Copiado' : 'Copiar'}
+        </button>
+      </div>
 
       {/* Today's sessions */}
       <div className="animate-in delay-2" style={{ marginTop: 16 }}>
