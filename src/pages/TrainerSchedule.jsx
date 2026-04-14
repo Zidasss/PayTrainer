@@ -35,7 +35,7 @@ export default function TrainerSchedule() {
 
   async function toggleAvailability(dow, time) {
     const trainerId = profile.id;
-    const existing = availability.find(a => a.day_of_week === dow && a.Start_time.slice(0, 5) === time);
+    const existing = availability.find(a => a.day_of_week === dow && a.start_time.slice(0, 5) === time);
 
     if (existing) {
       await supabase.from('availability').delete().eq('id', existing.id);
@@ -44,7 +44,7 @@ export default function TrainerSchedule() {
       const endHour = (parseInt(time) + 1).toString().padStart(2, '0') + ':00:00';
       const { data } = await supabase.from('availability').insert({
         trainer_id: trainerId, day_of_week: dow,
-        Start_time: time + ':00', end_time: endHour,
+        start_time: time + ':00', end_time: endHour,
       }).select().single();
       if (data) setAvailability(prev => [...prev, data]);
     }
@@ -52,8 +52,8 @@ export default function TrainerSchedule() {
 
   function getSlotInfo(date, time) {
     const dateStr = date.toISOString().split('T')[0];
-    const booking = bookings.find(b => b.booking_date === dateStr && b.Start_time.slice(0, 5) === time);
-    const isAvailable = availability.some(a => a.day_of_week === date.getDay() && a.Start_time.slice(0, 5) === time);
+    const booking = bookings.find(b => b.booking_date === dateStr && b.start_time.slice(0, 5) === time);
+    const isAvailable = availability.some(a => a.day_of_week === date.getDay() && a.start_time.slice(0, 5) === time);
     return { booking, isAvailable };
   }
 
@@ -65,7 +65,7 @@ export default function TrainerSchedule() {
     return !!d;
   }).length;
   const availCount = weekDates.reduce((sum, d) => {
-    return sum + times.filter(t => availability.some(a => a.day_of_week === d.getDay() && a.Start_time.slice(0, 5) === t)).length;
+    return sum + times.filter(t => availability.some(a => a.day_of_week === d.getDay() && a.start_time.slice(0, 5) === t)).length;
   }, 0);
 
   return (

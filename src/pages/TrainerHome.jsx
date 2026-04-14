@@ -83,7 +83,7 @@ useEffect(() => {
       .eq('trainer_id', trainerId)
       .eq('booking_date', today)
       .eq('status', 'confirmed')
-      .order('Start_time');
+      .order('start_time');
     setTodayBookings(bk || []);
 
     setStats({ students: activeSubs.length, revenue, today: bk?.length || 0 });
@@ -218,7 +218,7 @@ useEffect(() => {
 
       {/* Public profile link */}
       <div className="animate-in delay-2 card" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-        <Zap size={18} color="var(--green-500)" />
+        <Star size={18} color="var(--green-500)" />
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 13, fontWeight: 500 }}>Agenda pública</p>
           <p style={{ fontSize: 11, color: 'var(--sand-400)', wordBreak: 'break-all' }}>
@@ -248,7 +248,7 @@ useEffect(() => {
         {todayBookings.length > 0 ? todayBookings.map(b => (
           <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid var(--sand-100)' }}>
             <div style={{ width: 48, height: 48, borderRadius: 'var(--radius-md)', background: 'var(--sand-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontFamily: 'var(--font-display)', fontSize: 15 }}>
-              {b.Start_time.slice(0, 5)}
+              {b.start_time.slice(0, 5)}
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 14, fontWeight: 500 }}>{b.profiles?.full_name || 'Aluno'}</p>
@@ -271,7 +271,7 @@ useEffect(() => {
             <div key={b.id} className="card">
               <p style={{ fontSize: 14, fontWeight: 500 }}>{b.profiles?.full_name} sugere:</p>
               <p style={{ fontSize: 13, color: 'var(--sand-500)', margin: '4px 0 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={14} /> {b.location} — {new Date(b.booking_date + 'T00:00:00').toLocaleDateString('pt-BR')} {b.Start_time.slice(0, 5)}
+                <MapPin size={14} /> {b.location} — {new Date(b.booking_date + 'T00:00:00').toLocaleDateString('pt-BR')} {b.start_time.slice(0, 5)}
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary" style={{ flex: 1, padding: 10 }} onClick={() => handleLocation(b.id, 'approved')}>
