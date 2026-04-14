@@ -21,6 +21,7 @@ import Notifications from './pages/Notifications';
 import TrainerProfile from './pages/TrainerProfile';
 import Legal from './pages/Legal';
 import PWAInstallBanner from './components/PWAInstallBanner';
+import TrainerPublic from './pages/TrainerPublic';
 import { useState, useEffect } from 'react';
 
 function ProtectedRoute({ children, requiredRole }) {
@@ -98,8 +99,9 @@ export default function App() {
 
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/legal" element={<Legal />} />
-
+          <Route path="/t/:trainerId" element={<TrainerPublic />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          
         </Routes>
         <PWAInstallBanner />
       </AuthProvider>

@@ -46,12 +46,14 @@ export function AuthProvider({ children }) {
   async function setupOAuthProfile({ role, fullName, phone }) {
     if (!session?.user) return;
     const userId = session.user.id;
+    const resolvedFullName = fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
 
     const { error: profileError } = await supabase.from('profiles').insert({
       id: userId,
       role,
-      full_name: fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+      full_name: resolvedFullName,
       phone: phone || null,
+      slug: resolvedFullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, ''),
     });
     if (profileError) throw profileError;
 
@@ -73,6 +75,7 @@ export function AuthProvider({ children }) {
 
     const { error: profileError } = await supabase.from('profiles').insert({
       id: userId, role, full_name: fullName, phone,
+      slug: fullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, ''),
     });
     if (profileError) throw profileError;
 
