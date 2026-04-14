@@ -81,7 +81,7 @@ export default function TrainerPublic() {
   function openWhatsApp() {
     if (!trainer?.phone) return;
     const digits = trainer.phone.replace(/\D/g, '');
-    const full = digits.StartsWith('55') ? digits : `55${digits}`;
+    const full = digits.startsWith('55') ? digits : `55${digits}`;
     window.open(`https://wa.me/${full}?text=${encodeURIComponent(`Olá ${trainer.full_name}! Vi seu perfil no Stride e goStaria de saber mais sobre as aulas.`)}`, '_blank');
   }
 
