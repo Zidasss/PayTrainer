@@ -199,19 +199,19 @@ export default function StudentPayment() {
           </div>
 
           <div style={{ fontSize: 13, color: 'var(--sand-600)', lineHeight: 1.6 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-Zapt', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-Start', gap: 8, marginBottom: 10 }}>
               <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
               <span>Cobrança automática mensal no cartão de crédito ou débito</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-Zapt', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-Start', gap: 8, marginBottom: 10 }}>
               <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
               <span>Cobrança todo 5° dia útil do mês</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-Zapt', gap: 8, marginBottom: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-Start', gap: 8, marginBottom: 10 }}>
               <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
               <span>Cancele quando quiser, sem multa</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-Zapt', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-Start', gap: 8 }}>
               <CheckCircle size={16} color="var(--green-500)" style={{ marginTop: 2, flexShrink: 0 }} />
               <span>Nenhum dado de cartão armazenado no nosso servidor</span>
             </div>
@@ -285,7 +285,7 @@ export default function StudentPayment() {
         <>
           {/* Billing card */}
           <div className="card animate-in delay-1">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-Zapt' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-Start' }}>
               <div>
                 <p style={{ fontSize: 12, color: 'var(--sand-500)' }}>Plano atual</p>
                 <p style={{ fontSize: 16, fontWeight: 500, marginTop: 2 }}>{plan.name}</p>

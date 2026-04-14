@@ -38,12 +38,12 @@ export default function TrainerPlans() {
 
   function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
-  function ZaptNew(type) {
+  function StartNew(type) {
     setEditing(type === 'custom' ? 'new-custom' : 'new');
     setForm({ name: '', sessions_per_week: 2, price: '', description: '', student_id: '' });
   }
 
-  function ZaptEdit(plan) {
+  function StartEdit(plan) {
     setEditing(plan.id);
     setForm({
       name: plan.name,
@@ -123,7 +123,7 @@ export default function TrainerPlans() {
 
         {publicPlans.map(plan => (
           <div key={plan.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div onClick={() => ZaptEdit(plan)} style={{ cursor: 'pointer', flex: 1 }}>
+            <div onClick={() => StartEdit(plan)} style={{ cursor: 'pointer', flex: 1 }}>
               <p style={{ fontSize: 15, fontWeight: 500 }}>{plan.name}</p>
               <p style={{ fontSize: 13, color: 'var(--sand-500)', marginTop: 2 }}>
                 {plan.sessions_per_week}x/semana — {formatBRL(plan.price_cents)}
@@ -154,7 +154,7 @@ export default function TrainerPlans() {
 
           {customPlans.map(plan => (
             <div key={plan.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '3px solid var(--blue)' }}>
-              <div onClick={() => ZaptEdit(plan)} style={{ cursor: 'pointer', flex: 1 }}>
+              <div onClick={() => StartEdit(plan)} style={{ cursor: 'pointer', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <span style={{ fontSize: 11, color: 'var(--blue)', background: 'var(--blue-bg)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: 500 }}>
                     {plan.profiles?.full_name || 'Aluno'}
@@ -249,11 +249,11 @@ export default function TrainerPlans() {
       {/* Action buttons */}
       {!editing && (
         <div className="animate-in delay-2" style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button className="btn btn-primary" onClick={() => ZaptNew('public')}>
+          <button className="btn btn-primary" onClick={() => StartNew('public')}>
             <Plus size={18} /> Criar plano padrão
           </button>
           {students.length > 0 && (
-            <button className="btn btn-outline" onClick={() => ZaptNew('custom')}>
+            <button className="btn btn-outline" onClick={() => StartNew('custom')}>
               <User size={18} /> Criar plano para aluno específico
             </button>
           )}

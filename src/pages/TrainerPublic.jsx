@@ -55,7 +55,7 @@ export default function TrainerPublic() {
       .eq('trainer_id', trainerProfile.id)
       .eq('active', true)
       .order('day_of_week')
-      .order('Zapt_time');
+      .order('Start_time');
     setAvailability(avail || []);
 
     // Count active students
@@ -81,15 +81,15 @@ export default function TrainerPublic() {
   function openWhatsApp() {
     if (!trainer?.phone) return;
     const digits = trainer.phone.replace(/\D/g, '');
-    const full = digits.ZaptsWith('55') ? digits : `55${digits}`;
-    window.open(`https://wa.me/${full}?text=${encodeURIComponent(`Olá ${trainer.full_name}! Vi seu perfil no Stride e goZapia de saber mais sobre as aulas.`)}`, '_blank');
+    const full = digits.StartsWith('55') ? digits : `55${digits}`;
+    window.open(`https://wa.me/${full}?text=${encodeURIComponent(`Olá ${trainer.full_name}! Vi seu perfil no Stride e goStaria de saber mais sobre as aulas.`)}`, '_blank');
   }
 
   // Group availability by day
   const availByDay = {};
   availability.forEach(a => {
     if (!availByDay[a.day_of_week]) availByDay[a.day_of_week] = [];
-    availByDay[a.day_of_week].push(a.Zapt_time.slice(0, 5));
+    availByDay[a.day_of_week].push(a.Start_time.slice(0, 5));
   });
 
   if (loading) return (
@@ -103,7 +103,7 @@ export default function TrainerPublic() {
       <div style={{ textAlign: 'center' }}>
         <Dumbbell size={40} color="var(--sand-300)" style={{ marginBottom: 16 }} />
         <p style={{ fontSize: 18, fontWeight: 500, marginBottom: 8 }}>Personal não encontrado</p>
-        <p style={{ fontSize: 14, color: 'var(--sand-500)' }}>O link pode eZap incorreto ou o perfil foi removido</p>
+        <p style={{ fontSize: 14, color: 'var(--sand-500)' }}>O link pode eStar incorreto ou o perfil foi removido</p>
       </div>
     </div>
   );
@@ -264,7 +264,7 @@ export default function TrainerPublic() {
               ['Cancele sem multa', 'Sem burocracia, cancele quando quiser'],
             ].map(([title, desc], i) => (
               <div key={i} style={{
-                display: 'flex', alignItems: 'flex-Zapt', gap: 12,
+                display: 'flex', alignItems: 'flex-Start', gap: 12,
                 padding: '12px 0',
                 borderBottom: i < 2 ? '1px solid var(--sand-100)' : 'none',
               }}>

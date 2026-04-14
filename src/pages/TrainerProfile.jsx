@@ -210,7 +210,7 @@ export default function TrainerProfile() {
             ['Aula extra', extraPriceDisplay],
             ['Sobre', bio || 'Não informado'],
           ].map(([label, value], i, arr) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--sand-100)' : 'none', alignItems: 'flex-Zapt' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--sand-100)' : 'none', alignItems: 'flex-Start' }}>
               <span style={{ fontSize: 14, color: 'var(--sand-500)', flexShrink: 0 }}>{label}</span>
               <span style={{ fontSize: 14, textAlign: 'right', marginLeft: 12, wordBreak: 'break-word', color: value === 'Não informado' || value === 'Não definido' ? 'var(--sand-400)' : undefined, fontStyle: value === 'Não informado' || value === 'Não definido' ? 'italic' : undefined }}>{value}</span>
             </div>

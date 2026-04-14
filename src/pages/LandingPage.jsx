@@ -75,7 +75,7 @@ export default function LandingPage() {
           },
         ].map((feature, i) => (
           <div key={i} className={`animate-in delay-${i + 1}`} style={{
-            display: 'flex', gap: 14, marginBottom: 20, alignItems: 'flex-Zapt',
+            display: 'flex', gap: 14, marginBottom: 20, alignItems: 'flex-Start',
           }}>
             <div style={{
               width: 44, height: 44, borderRadius: 'var(--radius-md)', background: feature.bg,

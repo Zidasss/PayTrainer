@@ -56,14 +56,14 @@ export default function StudentSchedule() {
       .eq('active', true);
     setAvailability(avail || []);
 
-    const ZaptDate = weekDates[0].toISOString().split('T')[0];
+    const StartDate = weekDates[0].toISOString().split('T')[0];
     const endDate = weekDates[4].toISOString().split('T')[0];
 
     const { data: bk } = await supabase
       .from('bookings')
       .select('*')
       .eq('trainer_id', sub.trainer_id)
-      .gte('booking_date', ZaptDate)
+      .gte('booking_date', StartDate)
       .lte('booking_date', endDate)
       .in('status', ['confirmed', 'completed']);
     setBookings(bk || []);
@@ -72,7 +72,7 @@ export default function StudentSchedule() {
     const { data: count } = await supabase.rpc('get_weekly_booking_count', {
       p_student_id: profile.id,
       p_trainer_id: sub.trainer_id,
-      p_week_Zapt: monday,
+      p_week_Start: monday,
     });
     setWeeklyCount(count || 0);
     setSelected([]);
@@ -81,7 +81,7 @@ export default function StudentSchedule() {
   // Check if a booking can be canceled (more than 2h before)
   function canCancel(booking) {
     const now = new Date();
-    const bookingDateTime = new Date(`${booking.booking_date}T${booking.Zapt_time}`);
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.Start_time}`);
     const diffMs = bookingDateTime.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     return diffHours > 10;
@@ -124,10 +124,10 @@ async function cancelBooking(bookingId) {
     const dow = date.getDay();
     const past = isPast(date, time);
 
-    const isAvailable = availability.some(a => a.day_of_week === dow && a.Zapt_time.slice(0, 5) === time);
+    const isAvailable = availability.some(a => a.day_of_week === dow && a.Start_time.slice(0, 5) === time);
     if (!isAvailable) return { status: 'unavailable', booking: null };
 
-    const booking = bookings.find(b => b.booking_date === dateStr && b.Zapt_time.slice(0, 5) === time);
+    const booking = bookings.find(b => b.booking_date === dateStr && b.Start_time.slice(0, 5) === time);
     if (booking) {
       if (booking.student_id === profile.id) return { status: 'mine', booking };
       return { status: 'taken', booking: null };
@@ -165,13 +165,13 @@ async function cancelBooking(bookingId) {
 
   function addToCalendar(booking) {
     const date = booking.booking_date;
-    const Zapt = booking.Zapt_time.slice(0, 5);
-    const endH = (parseInt(Zapt) + 1).toString().padZapt(2, '0');
+    const Start = booking.Start_time.slice(0, 5);
+    const endH = (parseInt(Start) + 1).toString().padStart(2, '0');
     const title = 'Treino presencial - Stride';
     const location = booking.location || '';
-    const ZaptISO = `${date}T${Zapt}:00`.replace(/[-:]/g, '');
+    const StartISO = `${date}T${Start}:00`.replace(/[-:]/g, '');
     const endISO = `${date}T${endH}:00:00`.replace(/[-:]/g, '');
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${ZaptISO}/${endISO}&location=${encodeURIComponent(location)}`;
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${StartISO}/${endISO}&location=${encodeURIComponent(location)}`;
     window.open(url, '_blank');
   }
 
@@ -194,8 +194,8 @@ async function cancelBooking(bookingId) {
           trainer_id: subscription.trainer_id,
           subscription_id: subscription.id,
           booking_date: dateStr,
-          Zapt_time: time + ':00',
-          end_time: (parseInt(time) + 1).toString().padZapt(2, '0') + ':00:00',
+          Start_time: time + ':00',
+          end_time: (parseInt(time) + 1).toString().padStart(2, '0') + ':00:00',
           type: isExtra ? 'extra' : 'plan',
           location: location || null,
           status: isExtra ? 'pending' : 'confirmed',
@@ -235,7 +235,7 @@ async function cancelBooking(bookingId) {
   // My bookings this week for the list below
   const myBookings = bookings
     .filter(b => b.student_id === profile.id)
-    .sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.Zapt_time.localeCompare(b.Zapt_time));
+    .sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.Start_time.localeCompare(b.Start_time));
 
   return (
     <div className="page">
@@ -428,7 +428,7 @@ async function cancelBooking(bookingId) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 14, fontWeight: 500 }}>
-                      {b.Zapt_time.slice(0, 5)} — Treino presencial
+                      {b.Start_time.slice(0, 5)} — Treino presencial
                     </p>
                     {b.location && (
                       <p style={{ fontSize: 12, color: 'var(--sand-500)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -481,7 +481,7 @@ async function cancelBooking(bookingId) {
           })}
 
           {/* Cancellation policy notice */}
-          <div style={{ display: 'flex', alignItems: 'flex-Zapt', gap: 8, padding: '10px 0', marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-Start', gap: 8, padding: '10px 0', marginTop: 4 }}>
             <AlertTriangle size={14} color="var(--sand-400)" style={{ marginTop: 2, flexShrink: 0 }} />
             <p style={{ fontSize: 11, color: 'var(--sand-400)', lineHeight: 1.5 }}>
               Cancelamentos devem ser feitos com no mínimo 10 horas de antecedência. Aulas não canceladas a tempo não serão devolvidas ao saldo semanal.

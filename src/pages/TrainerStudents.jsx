@@ -23,7 +23,7 @@ export default function TrainerStudents() {
   function openWhatsApp(phone) {
     if (!phone) { alert('Aluno não cadastrou telefone'); return; }
     const digits = phone.replace(/\D/g, '');
-    const fullPhone = digits.ZaptsWith('55') ? digits : `55${digits}`;
+    const fullPhone = digits.StartsWith('55') ? digits : `55${digits}`;
     window.open(`https://wa.me/${fullPhone}`, '_blank');
   }
 
