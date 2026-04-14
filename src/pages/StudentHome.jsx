@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT } from '../components/Shared';
 import { NotificationBell } from '../components/NotificationBell';
-import { CalendarPlus, ChevronRight, MapPin, AlertTriangle, CreditCard } from 'lucide-react';
+import { CalendarPlus, ChevronRight, MapPin, AlertTriangle, CreditCard, MessageCircle } from 'lucide-react';
 
 export default function StudentHome() {
   const { profile } = useAuth();
@@ -19,7 +19,7 @@ export default function StudentHome() {
   async function loadData() {
     const { data: subs } = await supabase
       .from('subscriptions')
-      .select('*, plans(*), trainers(*, profiles(full_name))')
+      .select('*, plans(*), trainers(*, profiles(full_name, phone))')
       .eq('student_id', profile.id)
       .eq('status', 'active')
       .limit(1);
@@ -30,7 +30,7 @@ export default function StudentHome() {
     if (!sub) {
       const { data: pastDue } = await supabase
         .from('subscriptions')
-        .select('*, plans(*), trainers(*, profiles(full_name))')
+        .select('*, plans(*), trainers(*, profiles(full_name, phone))')
         .eq('student_id', profile.id)
         .eq('status', 'past_due')
         .limit(1);
@@ -159,7 +159,25 @@ export default function StudentHome() {
           <p style={{ fontSize: 13, color: 'var(--sand-500)', marginBottom: 16 }}>Peça o link do seu personal para se inscrever</p>
         </div>
       )}
-
+      
+      {subscription?.trainers?.profiles?.full_name && subscription?.trainers?.profiles?.phone && (
+      <div className="animate-in delay-1" style={{ marginBottom: 16 }}>
+        <div onClick={() => {
+          const phone = subscription.trainers.profiles.phone.replace(/\D/g, '');
+          const fullPhone = phone.startsWith('55') ? phone : `55${phone}`;
+          window.open(`https://wa.me/${fullPhone}`, '_blank');
+        }} style={{ cursor: 'pointer', padding: '14px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--sand-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageCircle size={20} color="white" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 14, fontWeight: 500 }}>{subscription.trainers.profiles.full_name}</p>
+            <p style={{ fontSize: 12, color: 'var(--sand-400)' }}>Abrir conversa no WhatsApp</p>
+          </div>
+          <ChevronRight size={16} color="var(--sand-400)" />
+        </div>
+      </div>
+)}
       {/* Upcoming sessions */}
       {!isLocked && (
         <div className="animate-in delay-2">

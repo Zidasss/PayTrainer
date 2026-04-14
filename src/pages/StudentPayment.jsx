@@ -3,10 +3,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, formatBRL, ConfirmModal } from '../components/Shared';
+import { generateReceipt } from '../lib/receipt';
 import { CreditCard, CheckCircle, AlertCircle, ExternalLink, Calendar, XCircle, Shield, ArrowRight } from 'lucide-react';
 
 export default function StudentPayment() {
-  const { profile, fetchProfile } = useAuth();
+  const { profile, fetchProfile, session } = useAuth();
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
   const isSetup = searchParams.get('setup') === 'true';
@@ -410,14 +411,28 @@ export default function StudentPayment() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: 14, fontWeight: 500 }}>{formatBRL(p.amount_cents)}</p>
-                <span className={`badge ${p.status === 'succeeded' ? 'badge-green' : 'badge-coral'}`}>
-                  {p.status === 'succeeded' ? 'Pago' : p.status === 'pending' ? 'Pendente' : 'Falhou'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end', marginTop: 4 }}>
+                  <span className={`badge ${p.status === 'succeeded' ? 'badge-green' : 'badge-coral'}`}>
+                    {p.status === 'succeeded' ? 'Pago' : p.status === 'pending' ? 'Pendente' : 'Falhou'}
+                  </span>
+                  {p.status === 'succeeded' && (
+                    <span onClick={() => generateReceipt({
+                      paymentId: p.id,
+                      date: p.paid_at || p.created_at,
+                      amount: p.amount_cents,
+                      planName: plan?.name || 'Plano',
+                      trainerName: trainerName || 'Personal',
+                      studentName: profile?.full_name || 'Aluno',
+                      studentEmail: session?.user?.email || '',
+                      description: p.description,
+                    })} style={{ fontSize: 11, color: 'var(--green-500)', cursor: 'pointer', textDecoration: 'underline' }}>
+                      Comprovante
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
-        </div>
-      )}
 
       {/* Cancel */}
       {isActive && (

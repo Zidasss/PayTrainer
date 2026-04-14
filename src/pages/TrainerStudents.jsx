@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL } from '../components/Shared';
-import { Search, MapPin } from 'lucide-react';
+import { Search, MapPin, MessageCircle } from 'lucide-react';
 
 export default function TrainerStudents() {
   const { profile } = useAuth();
@@ -18,6 +18,13 @@ export default function TrainerStudents() {
       .eq('trainer_id', profile.id)
       .order('created_at', { ascending: false });
     setStudents(data || []);
+  }
+
+  function openWhatsApp(phone) {
+    if (!phone) { alert('Aluno não cadastrou telefone'); return; }
+    const digits = phone.replace(/\D/g, '');
+    const fullPhone = digits.startsWith('55') ? digits : `55${digits}`;
+    window.open(`https://wa.me/${fullPhone}`, '_blank');
   }
 
   const filtered = students.filter(s =>
@@ -63,6 +70,12 @@ export default function TrainerStudents() {
                   <p style={{ fontSize: 12, color: 'var(--sand-400)', marginTop: 2 }}>{s.profiles.phone}</p>
                 )}
               </div>
+              {s.profiles?.phone && (
+                <div onClick={() => openWhatsApp(s.profiles.phone)}
+                  style={{ cursor: 'pointer', padding: 8, flexShrink: 0 }}>
+                  <MessageCircle size={20} color="#25D366" />
+                </div>
+              )}
             </div>
           );
         })}
