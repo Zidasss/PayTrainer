@@ -28,7 +28,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'support@cloudheadco.com',
+          from: 'Stride <onboarding@resend.dev>',
           to: FEEDBACK_EMAIL,
           subject: `[Stride] ${category} - ${userName}`,
           html: `
