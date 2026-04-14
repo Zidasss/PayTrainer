@@ -81,7 +81,7 @@ export default function StudentSchedule() {
   // Check if a booking can be canceled (more than 2h before)
   function canCancel(booking) {
     const now = new Date();
-    const bookingDateTime = new Date(`${booking.booking_date}T${booking.Start_time}`);
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`);
     const diffMs = bookingDateTime.getTime() - now.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     return diffHours > 10;
@@ -124,10 +124,10 @@ async function cancelBooking(bookingId) {
     const dow = date.getDay();
     const past = isPast(date, time);
 
-    const isAvailable = availability.some(a => a.day_of_week === dow && a.Start_time.slice(0, 5) === time);
+    const isAvailable = availability.some(a => a.day_of_week === dow && a.start_time.slice(0, 5) === time);
     if (!isAvailable) return { status: 'unavailable', booking: null };
 
-    const booking = bookings.find(b => b.booking_date === dateStr && b.Start_time.slice(0, 5) === time);
+    const booking = bookings.find(b => b.booking_date === dateStr && b.start_time.slice(0, 5) === time);
     if (booking) {
       if (booking.student_id === profile.id) return { status: 'mine', booking };
       return { status: 'taken', booking: null };
@@ -165,7 +165,7 @@ async function cancelBooking(bookingId) {
 
   function addToCalendar(booking) {
     const date = booking.booking_date;
-    const Start = booking.Start_time.slice(0, 5);
+    const Start = booking.start_time.slice(0, 5);
     const endH = (parseInt(Start) + 1).toString().padStart(2, '0');
     const title = 'Treino presencial - Stride';
     const location = booking.location || '';
@@ -194,7 +194,7 @@ async function cancelBooking(bookingId) {
           trainer_id: subscription.trainer_id,
           subscription_id: subscription.id,
           booking_date: dateStr,
-          Start_time: time + ':00',
+          start_time: time + ':00',
           end_time: (parseInt(time) + 1).toString().padStart(2, '0') + ':00:00',
           type: isExtra ? 'extra' : 'plan',
           location: location || null,
@@ -235,7 +235,7 @@ async function cancelBooking(bookingId) {
   // My bookings this week for the list below
   const myBookings = bookings
     .filter(b => b.student_id === profile.id)
-    .sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.Start_time.localeCompare(b.Start_time));
+    .sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.start_time.localeCompare(b.start_time));
 
   return (
     <div className="page">
@@ -428,7 +428,7 @@ async function cancelBooking(bookingId) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: 14, fontWeight: 500 }}>
-                      {b.Start_time.slice(0, 5)} — Treino presencial
+                      {b.start_time.slice(0, 5)} — Treino presencial
                     </p>
                     {b.location && (
                       <p style={{ fontSize: 12, color: 'var(--sand-500)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
