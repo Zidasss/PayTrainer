@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { formatBRL, Avatar, DAYS_PT } from '../components/Shared';
-import { Calendar, Clock, MapPin, MessageCircle, ChevronRight, Check, Star, Dumbbell, ArrowRight, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, MessageCircle, ChevronRight, Check, Dumbbell, ArrowRight, Users } from 'lucide-react';
 
 export default function TrainerPublic() {
   const { slug } = useParams();
