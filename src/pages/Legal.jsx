@@ -34,7 +34,7 @@ export default function Legal() {
 
       <div style={{ marginTop: 32, padding: '16px 0', borderTop: '1px solid var(--sand-100)', textAlign: 'center' }}>
         <p style={{ fontSize: 11, color: 'var(--sand-400)' }}>Stride é um produto Cloudhead</p>
-        <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>Dúvidas: gustavo.zavadniakk@gmail.com</p>
+        <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>Dúvidas: support@cloudhead.com</p>
       </div>
     </div>
   );
@@ -102,7 +102,7 @@ function PrivacyContent() {
         <p style={{ paddingLeft: 12 }}>• <strong>Corrigir</strong> dados incompletos ou desatualizados (via aba Perfil)</p>
         <p style={{ paddingLeft: 12 }}>• <strong>Solicitar a exclusão</strong> da sua conta e dados pessoais</p>
         <p style={{ paddingLeft: 12 }}>• <strong>Revogar consentimento</strong> a qualquer momento</p>
-        <p style={{ marginTop: 8 }}>Para exercer qualquer desses direitos, entre em contato pelo canal de Feedback & Suporte do app ou envie email para gustavo.zavadniakk@gmail.com.</p>
+        <p style={{ marginTop: 8 }}>Para exercer qualquer desses direitos, entre em contato pelo canal de Feedback & Suporte do app ou envie email para support@cloudhead.com.</p>
       </Section>
 
       <Section title="6. Cookies e rastreamento">
@@ -120,7 +120,7 @@ function PrivacyContent() {
       <Section title="9. Contato">
         <p>Para dúvidas, sugestões ou solicitações relacionadas à privacidade:</p>
         <p style={{ marginTop: 8 }}><strong>Cloudhead</strong></p>
-        <p>Email: gustavo.zavadniakk@gmail.com</p>
+        <p>Email: support@cloudhead.com</p>
         <p>Canal: Feedback & Suporte (dentro do app Stride)</p>
       </Section>
     </div>
@@ -213,7 +213,7 @@ function TermsContent() {
       <Section title="13. Contato">
         <p>Para dúvidas ou solicitações:</p>
         <p style={{ marginTop: 8 }}><strong>Cloudhead</strong></p>
-        <p>Email: gustavo.zavadniakk@gmail.com</p>
+        <p>Email: support@cloudhead.com</p>
         <p>Canal: Feedback & Suporte (dentro do app Stride)</p>
       </Section>
     </div>

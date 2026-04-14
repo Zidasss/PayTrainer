@@ -2,31 +2,26 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, ConfirmModal } from '../components/Shared';
-import { TrendingUp, ArrowDownRight, ExternalLink, RefreshCw } from 'lucide-react';
+import { TrendingUp, ArrowDownRight, ExternalLink, AlertCircle, Users, Calendar, Percent, Clock } from 'lucide-react';
 
 export default function TrainerFinance() {
   const { profile } = useAuth();
   const [payments, setPayments] = useState([]);
   const [students, setStudents] = useState([]);
+  const [allSubs, setAllSubs] = useState([]);
   const [stripeReady, setStripeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showStripeConfirm, setShowStripeConfirm] = useState(false);
+  const [occupancy, setOccupancy] = useState({ filled: 0, total: 0 });
+  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => {
-    if (!profile?.id) return;
-    loadData();
-  }, [month, profile?.id]);
+  useEffect(() => { loadData(); }, [month]);
 
   async function loadData() {
-    if (!profile?.id) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     const trainerId = profile.id;
 
@@ -36,13 +31,15 @@ export default function TrainerFinance() {
       .eq('id', trainerId).single();
     setStripeReady(trainer?.stripe_onboarding_complete || false);
 
-    // Active subscriptions with plan info
+    // All subscriptions (for inadimplents)
     const { data: subs } = await supabase
       .from('subscriptions')
-      .select('*, plans(*), profiles!subscriptions_student_id_fkey(full_name)')
-      .eq('trainer_id', trainerId)
-      .eq('status', 'active');
-    setStudents(subs || []);
+      .select('*, plans(*), profiles!subscriptions_student_id_fkey(full_name, phone)')
+      .eq('trainer_id', trainerId);
+    setAllSubs(subs || []);
+
+    const activeSubs = (subs || []).filter(s => s.status === 'active');
+    setStudents(activeSubs);
 
     // Payments for selected month
     const startDate = `${month}-01T00:00:00`;
@@ -58,21 +55,62 @@ export default function TrainerFinance() {
       .order('created_at', { ascending: false });
     setPayments(pmts || []);
 
+    // Occupancy: count bookings this week vs available slots
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+
+    const { data: avail } = await supabase
+      .from('availability')
+      .select('id')
+      .eq('trainer_id', trainerId)
+      .eq('active', true);
+    const totalSlots = (avail?.length || 0);
+
+    const { data: weekBookings } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('trainer_id', trainerId)
+      .gte('booking_date', monday.toISOString().split('T')[0])
+      .lte('booking_date', friday.toISOString().split('T')[0])
+      .eq('status', 'confirmed');
+    setOccupancy({ filled: weekBookings?.length || 0, total: totalSlots });
+
+    // Monthly revenue last 6 months
+    const revenueData = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mStart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString();
+
+      const { data: mPmts } = await supabase
+        .from('payments')
+        .select('trainer_amount_cents')
+        .eq('trainer_id', trainerId)
+        .eq('status', 'succeeded')
+        .gte('created_at', mStart)
+        .lt('created_at', mEnd);
+
+      const total = (mPmts || []).reduce((s, p) => s + (p.trainer_amount_cents || 0), 0);
+      const label = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+      revenueData.push({ label, total });
+    }
+    setMonthlyRevenue(revenueData);
+
     setLoading(false);
   }
 
   async function openStripeDashboard() {
-      setShowStripeConfirm(false);
-      try {
-        const loginData = await callStripe('create_login_link');
-        if (loginData?.url) {
-          window.open(loginData.url, '_blank');
-          return;
-        }
-      } catch (err) {
-        window.open('https://dashboard.stripe.com/', '_blank');
-      }
+    setShowStripeConfirm(false);
+    try {
+      const loginData = await callStripe('create_login_link');
+      if (loginData?.url) { window.open(loginData.url, '_blank'); return; }
+    } catch (err) {
+      window.open('https://dashboard.stripe.com/', '_blank');
     }
+  }
 
   const totalRevenue = students.reduce((sum, s) => sum + (s.plans?.price_cents || 0), 0);
   const platformFee = Math.round(totalRevenue * 0.08);
@@ -80,9 +118,11 @@ export default function TrainerFinance() {
 
   const monthPayments = payments.filter(p => p.status === 'succeeded');
   const totalPaid = monthPayments.reduce((sum, p) => sum + p.trainer_amount_cents, 0);
-  const totalFees = monthPayments.reduce((sum, p) => sum + p.platform_fee_cents, 0);
 
-  // Generate month options
+  const inadimplents = allSubs.filter(s => s.status === 'past_due');
+  const occupancyRate = occupancy.total > 0 ? Math.round((occupancy.filled / occupancy.total) * 100) : 0;
+  const maxRevenue = Math.max(...monthlyRevenue.map(r => r.total), 1);
+
   const monthOptions = [];
   const now = new Date();
   for (let i = 0; i < 6; i++) {
@@ -114,6 +154,85 @@ export default function TrainerFinance() {
           <span>Taxa (8%): {formatBRL(platformFee)}</span>
         </div>
       </div>
+
+      {/* Quick stats */}
+      <div className="animate-in delay-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+        <div style={{ padding: '14px 12px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+          <Users size={18} color="var(--green-500)" style={{ margin: '0 auto 6px' }} />
+          <p style={{ fontSize: 20, fontWeight: 600, fontFamily: 'var(--font-display)' }}>{students.length}</p>
+          <p style={{ fontSize: 11, color: 'var(--sand-500)' }}>Ativos</p>
+        </div>
+        <div style={{ padding: '14px 12px', background: inadimplents.length > 0 ? 'var(--coral-bg)' : 'var(--sand-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+          <AlertCircle size={18} color={inadimplents.length > 0 ? 'var(--coral)' : 'var(--sand-400)'} style={{ margin: '0 auto 6px' }} />
+          <p style={{ fontSize: 20, fontWeight: 600, fontFamily: 'var(--font-display)', color: inadimplents.length > 0 ? 'var(--coral)' : undefined }}>{inadimplents.length}</p>
+          <p style={{ fontSize: 11, color: inadimplents.length > 0 ? 'var(--coral)' : 'var(--sand-500)' }}>Inadimplentes</p>
+        </div>
+        <div style={{ padding: '14px 12px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+          <Percent size={18} color="var(--blue)" style={{ margin: '0 auto 6px' }} />
+          <p style={{ fontSize: 20, fontWeight: 600, fontFamily: 'var(--font-display)' }}>{occupancyRate}%</p>
+          <p style={{ fontSize: 11, color: 'var(--sand-500)' }}>Ocupação</p>
+        </div>
+      </div>
+
+      {/* Revenue chart */}
+      {monthlyRevenue.length > 0 && (
+        <div className="animate-in delay-2" style={{ padding: '18px 20px', background: 'var(--sand-50)', borderRadius: 'var(--radius-lg)', marginBottom: 16 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 14 }}>Receita últimos 6 meses</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 100 }}>
+            {monthlyRevenue.map((m, i) => {
+              const height = maxRevenue > 0 ? Math.max((m.total / maxRevenue) * 100, 4) : 4;
+              const isLast = i === monthlyRevenue.length - 1;
+              return (
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 9, color: 'var(--sand-500)' }}>
+                    {m.total > 0 ? formatBRL(m.total) : '—'}
+                  </span>
+                  <div style={{
+                    width: '100%', height: `${height}%`, minHeight: 4,
+                    background: isLast ? 'var(--green-500)' : 'var(--green-200)',
+                    borderRadius: '4px 4px 0 0', transition: 'height 0.3s',
+                  }} />
+                  <span style={{ fontSize: 10, color: isLast ? 'var(--green-600)' : 'var(--sand-400)', fontWeight: isLast ? 600 : 400 }}>
+                    {m.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Inadimplent students */}
+      {inadimplents.length > 0 && (
+        <div className="animate-in delay-2" style={{ marginBottom: 16 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, marginBottom: 10, color: 'var(--coral)' }}>Alunos inadimplentes</p>
+          {inadimplents.map(s => {
+            const daysSince = s.current_period_end
+              ? Math.floor((new Date() - new Date(s.current_period_end)) / (1000 * 60 * 60 * 24))
+              : 0;
+            return (
+              <div key={s.id} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '12px 16px', borderRadius: 'var(--radius-md)', background: 'var(--coral-bg)',
+                marginBottom: 6,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Avatar name={s.profiles?.full_name} size="sm" bg="var(--coral-bg)" color="var(--coral)" />
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 500 }}>{s.profiles?.full_name || 'Aluno'}</p>
+                    <p style={{ fontSize: 12, color: 'var(--coral)' }}>{s.plans?.name || '—'} — {s.plans ? formatBRL(s.plans.price_cents) : '—'}</p>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--coral)' }}>
+                    {daysSince > 0 ? `${daysSince}d atraso` : 'Pendente'}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Stripe dashboard button */}
       {stripeReady && (
@@ -191,6 +310,18 @@ export default function TrainerFinance() {
           </div>
         </div>
       )}
+
+      {/* Forecast */}
+      <div className="animate-in delay-4" style={{ marginTop: 16, padding: '16px 20px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', marginBottom: 16 }}>
+        <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--green-700)', marginBottom: 4 }}>Previsão próximo mês</p>
+        <p style={{ fontSize: 22, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--green-700)' }}>
+          {formatBRL(netRevenue)}
+        </p>
+        <p style={{ fontSize: 12, color: 'var(--green-600)', marginTop: 2 }}>
+          Baseado nos {students.length} aluno(s) ativo(s) atual
+        </p>
+      </div>
+
       <ConfirmModal
         show={showStripeConfirm}
         title="Abrir painel Stripe"
@@ -200,9 +331,8 @@ export default function TrainerFinance() {
         onConfirm={openStripeDashboard}
         onCancel={() => setShowStripeConfirm(false)}
       />
+
       <BottomNav role="trainer" />
     </div>
   );
 }
-
-[]

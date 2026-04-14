@@ -13,6 +13,9 @@ export default function StudentHome() {
   const [subscription, setSub] = useState(null);
   const [weeklyCount, setWeeklyCount] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [monthlyClasses, setMonthlyClasses] = useState({ done: 0, total: 0 });
+  const [streak, setStreak] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
 
   useEffect(() => { loadData(); }, []);
 
@@ -85,6 +88,83 @@ export default function StudentHome() {
         });
         setWeeklyCount(data || 0);
       }
+
+      // Check for upcoming classes and create reminder
+      const now = new Date();
+      const reminderHours = 12;
+      const reminderLimit = new Date(now.getTime() + reminderHours * 60 * 60 * 1000);
+      const { data: upcoming } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('student_id', profile.id)
+        .eq('status', 'confirmed')
+        .gte('booking_date', now.toISOString().split('T')[0])
+        .lte('booking_date', reminderLimit.toISOString().split('T')[0])
+        .order('booking_date')
+        .order('start_time')
+        .limit(1);
+
+      if (upcoming?.length > 0) {
+        const next = upcoming[0];
+        const classTime = new Date(`${next.booking_date}T${next.start_time}`);
+        const diffHours = (classTime - now) / (1000 * 60 * 60);
+        if (diffHours > 0 && diffHours <= reminderHours) {
+          const reminderKey = `stride_reminder_${next.id}`;
+          if (!localStorage.getItem(reminderKey)) {
+            const { createNotification } = await import('../lib/notifications');
+            await createNotification({
+              userId: profile.id,
+              title: 'Lembrete de aula',
+              message: `Você tem aula ${diffHours <= 2 ? 'em breve' : 'amanhã'} às ${next.start_time.slice(0, 5)}${next.location ? ' — ' + next.location : ''}`,
+              type: 'info',
+            });
+            localStorage.setItem(reminderKey, 'true');
+          }
+        }
+      }
+
+      // Monthly stats
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const { data: monthBk } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('student_id', profile.id)
+        .eq('status', 'confirmed')
+        .gte('booking_date', monthStart)
+        .lte('booking_date', monthEnd);
+
+      const weeksInMonth = 4;
+      const monthTotal = (sub.plans?.sessions_per_week || 0) * weeksInMonth;
+      setMonthlyClasses({ done: monthBk?.length || 0, total: monthTotal });
+
+      // Training streak (consecutive weeks with at least 1 class)
+      let streakCount = 0;
+      for (let w = 0; w < 12; w++) {
+        const wStart = new Date();
+        wStart.setDate(wStart.getDate() - ((wStart.getDay() + 6) % 7) - (w * 7));
+        const wEnd = new Date(wStart);
+        wEnd.setDate(wStart.getDate() + 6);
+        const { data: wBk } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('student_id', profile.id)
+          .in('status', ['confirmed', 'completed'])
+          .gte('booking_date', wStart.toISOString().split('T')[0])
+          .lte('booking_date', wEnd.toISOString().split('T')[0])
+          .limit(1);
+        if (wBk?.length > 0) streakCount++;
+        else break;
+      }
+      setStreak(streakCount);
+
+      // Total spent
+      const { data: allPayments } = await supabase
+        .from('payments')
+        .select('amount_cents')
+        .eq('student_id', profile.id)
+        .eq('status', 'succeeded');
+      setTotalSpent((allPayments || []).reduce((s, p) => s + p.amount_cents, 0));
     }
   }
 
@@ -229,7 +309,42 @@ export default function StudentHome() {
           <CalendarPlus size={18} /> Agendar aula
         </button>
       )}
+      
+      {/* Stats dashboard */}
+      {subscription && !isLocked && (
+        <div className="animate-in delay-4" style={{ marginTop: 24 }}>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 12 }}>Seu progresso</p>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div style={{ padding: '16px 14px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <p style={{ fontSize: 24, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--green-600)' }}>
+                {monthlyClasses.done}/{monthlyClasses.total}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--sand-500)', marginTop: 4 }}>Aulas este mês</p>
+              {monthlyClasses.total > 0 && (
+                <div style={{ marginTop: 8, background: 'var(--sand-200)', borderRadius: 4, height: 4 }}>
+                  <div style={{ width: `${Math.min((monthlyClasses.done / monthlyClasses.total) * 100, 100)}%`, background: 'var(--green-500)', borderRadius: 4, height: 4, transition: 'width 0.3s' }} />
+                </div>
+              )}
+            </div>
+            <div style={{ padding: '16px 14px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <p style={{ fontSize: 24, fontWeight: 600, fontFamily: 'var(--font-display)', color: streak >= 4 ? 'var(--green-600)' : 'var(--sand-600)' }}>
+                {streak} {streak === 1 ? 'sem' : 'sem'}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--sand-500)', marginTop: 4 }}>Sequência de treinos</p>
+              {streak >= 4 && <p style={{ fontSize: 10, color: 'var(--green-500)', marginTop: 4 }}>🔥 Em chamas!</p>}
+            </div>
+          </div>
+
+          <div style={{ padding: '14px 18px', background: 'var(--sand-50)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--sand-500)' }}>Total investido em treinos</p>
+              <p style={{ fontSize: 18, fontWeight: 600, fontFamily: 'var(--font-display)', marginTop: 2 }}>{formatBRL(totalSpent)}</p>
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--sand-400)' }}>Desde o início</span>
+          </div>
+        </div>
+      )}
       <BottomNav role="student" />
     </div>
   );

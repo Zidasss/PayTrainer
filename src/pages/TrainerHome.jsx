@@ -86,6 +86,21 @@ useEffect(() => {
 
     setStats({ students: activeSubs.length, revenue, today: bk?.length || 0 });
 
+    // Reminder for today's classes
+    if (bk && bk.length > 0) {
+      const reminderKey = `stride_trainer_reminder_${today}`;
+      if (!localStorage.getItem(reminderKey)) {
+        const { createNotification } = await import('../lib/notifications');
+        await createNotification({
+          userId: trainerId,
+          title: 'Aulas hoje',
+          message: `Você tem ${bk.length} aula(s) agendada(s) para hoje`,
+          type: 'info',
+        });
+        localStorage.setItem(reminderKey, 'true');
+      }
+    }
+
     // Pending location requests
     const { data: pending } = await supabase
       .from('bookings')

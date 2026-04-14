@@ -433,6 +433,8 @@ export default function StudentPayment() {
               </div>
             </div>
           ))}
+        </div>
+      )}
 
       {/* Cancel */}
       {isActive && (
