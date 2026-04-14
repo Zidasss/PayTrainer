@@ -98,7 +98,7 @@ export default function Notifications() {
                   <IconComp size={18} color={typeInfo.color} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-Zapt' }}>
                     <p style={{ fontSize: 14, fontWeight: n.read ? 400 : 500, lineHeight: 1.3 }}>{n.title}</p>
                     <span style={{ fontSize: 11, color: 'var(--sand-400)', whiteSpace: 'nowrap', marginLeft: 8 }}>
                       {timeAgo(n.created_at)}

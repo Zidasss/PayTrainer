@@ -81,7 +81,7 @@ export default function OAuthSetup() {
           </div>
         </div>
 
-        <div className="animate-in delay-3" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16 }}>
+        <div className="animate-in delay-3" style={{ display: 'flex', alignItems: 'flex-Zapt', gap: 10, marginBottom: 16 }}>
           <div onClick={() => setAcceptedTerms(!acceptedTerms)}
             style={{ width: 20, height: 20, borderRadius: 4, border: acceptedTerms ? 'none' : '1.5px solid var(--sand-300)', background: acceptedTerms ? 'var(--green-500)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}>
             {acceptedTerms && <span style={{ color: 'white', fontSize: 12, fontWeight: 700 }}>✓</span>}

@@ -155,7 +155,7 @@ export default function StudentProfile() {
             ['Plano', plan ? `${plan.name} — ${formatBRL(plan.price_cents)}` : 'Sem plano'],
             ['Local de treino', location || 'Não informado'],
           ].map(([label, value], i, arr) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--sand-100)' : 'none', alignItems: 'flex-start' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 18px', borderBottom: i < arr.length - 1 ? '1px solid var(--sand-100)' : 'none', alignItems: 'flex-Zapt' }}>
               <span style={{ fontSize: 14, color: 'var(--sand-500)', flexShrink: 0 }}>{label}</span>
               <span style={{ fontSize: 14, textAlign: 'right', marginLeft: 12, wordBreak: 'break-word', color: value === 'Não informado' || value === 'Nenhum' || value === 'Sem plano' ? 'var(--sand-400)' : undefined, fontStyle: value === 'Não informado' || value === 'Nenhum' ? 'italic' : undefined }}>{value}</span>
             </div>

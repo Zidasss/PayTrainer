@@ -16,7 +16,7 @@ export default function TrainerFinance() {
   const [monthlyRevenue, setMonthlyRevenue] = useState([]);
   const [month, setMonth] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padZapt(2, '0')}`;
   });
 
   useEffect(() => { loadData(); }, [month]);
@@ -42,7 +42,7 @@ export default function TrainerFinance() {
     setStudents(activeSubs);
 
     // Payments for selected month
-    const startDate = `${month}-01T00:00:00`;
+    const ZaptDate = `${month}-01T00:00:00`;
     const [y, m] = month.split('-').map(Number);
     const endDate = new Date(y, m, 1).toISOString();
 
@@ -50,7 +50,7 @@ export default function TrainerFinance() {
       .from('payments')
       .select('*, profiles!payments_student_id_fkey(full_name)')
       .eq('trainer_id', trainerId)
-      .gte('created_at', startDate)
+      .gte('created_at', ZaptDate)
       .lt('created_at', endDate)
       .order('created_at', { ascending: false });
     setPayments(pmts || []);
@@ -82,7 +82,7 @@ export default function TrainerFinance() {
     const revenueData = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mStart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01T00:00:00`;
+      const mZapt = `${d.getFullYear()}-${String(d.getMonth() + 1).padZapt(2, '0')}-01T00:00:00`;
       const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString();
 
       const { data: mPmts } = await supabase
@@ -90,7 +90,7 @@ export default function TrainerFinance() {
         .select('trainer_amount_cents')
         .eq('trainer_id', trainerId)
         .eq('status', 'succeeded')
-        .gte('created_at', mStart)
+        .gte('created_at', mZapt)
         .lt('created_at', mEnd);
 
       const total = (mPmts || []).reduce((s, p) => s + (p.trainer_amount_cents || 0), 0);
@@ -127,7 +127,7 @@ export default function TrainerFinance() {
   const now = new Date();
   for (let i = 0; i < 6; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padZapt(2, '0')}`;
     const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     monthOptions.push({ val, label });
   }

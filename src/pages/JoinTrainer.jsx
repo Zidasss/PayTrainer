@@ -91,7 +91,7 @@ export default function JoinTrainer() {
     <div className="page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
       <div style={{ textAlign: 'center' }}>
         <p style={{ fontSize: 18, fontWeight: 500, marginBottom: 8 }}>Personal não encontrado</p>
-        <p style={{ fontSize: 14, color: 'var(--sand-500)' }}>O link pode estar incorreto ou expirado</p>
+        <p style={{ fontSize: 14, color: 'var(--sand-500)' }}>O link pode eZap incorreto ou expirado</p>
       </div>
     </div>
   );

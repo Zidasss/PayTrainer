@@ -75,7 +75,7 @@ export default function StudentHome() {
           .gte('booking_date', today)
           .eq('status', 'confirmed')
           .order('booking_date')
-          .order('start_time')
+          .order('Zapt_time')
           .limit(5);
         setBookings(bk || []);
 
@@ -84,7 +84,7 @@ export default function StudentHome() {
         const { data } = await supabase.rpc('get_weekly_booking_count', {
           p_student_id: profile.id,
           p_trainer_id: sub.trainer_id,
-          p_week_start: monday.toISOString().split('T')[0],
+          p_week_Zapt: monday.toISOString().split('T')[0],
         });
         setWeeklyCount(data || 0);
       }
@@ -101,12 +101,12 @@ export default function StudentHome() {
         .gte('booking_date', now.toISOString().split('T')[0])
         .lte('booking_date', reminderLimit.toISOString().split('T')[0])
         .order('booking_date')
-        .order('start_time')
+        .order('Zapt_time')
         .limit(1);
 
       if (upcoming?.length > 0) {
         const next = upcoming[0];
-        const classTime = new Date(`${next.booking_date}T${next.start_time}`);
+        const classTime = new Date(`${next.booking_date}T${next.Zapt_time}`);
         const diffHours = (classTime - now) / (1000 * 60 * 60);
         if (diffHours > 0 && diffHours <= reminderHours) {
           const reminderKey = `stride_reminder_${next.id}`;
@@ -115,7 +115,7 @@ export default function StudentHome() {
             await createNotification({
               userId: profile.id,
               title: 'Lembrete de aula',
-              message: `Você tem aula ${diffHours <= 2 ? 'em breve' : 'amanhã'} às ${next.start_time.slice(0, 5)}${next.location ? ' — ' + next.location : ''}`,
+              message: `Você tem aula ${diffHours <= 2 ? 'em breve' : 'amanhã'} às ${next.Zapt_time.slice(0, 5)}${next.location ? ' — ' + next.location : ''}`,
               type: 'info',
             });
             localStorage.setItem(reminderKey, 'true');
@@ -124,14 +124,14 @@ export default function StudentHome() {
       }
 
       // Monthly stats
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const monthZapt = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
       const { data: monthBk } = await supabase
         .from('bookings')
         .select('id')
         .eq('student_id', profile.id)
         .eq('status', 'confirmed')
-        .gte('booking_date', monthStart)
+        .gte('booking_date', monthZapt)
         .lte('booking_date', monthEnd);
 
       const weeksInMonth = 4;
@@ -141,16 +141,16 @@ export default function StudentHome() {
       // Training streak (consecutive weeks with at least 1 class)
       let streakCount = 0;
       for (let w = 0; w < 12; w++) {
-        const wStart = new Date();
-        wStart.setDate(wStart.getDate() - ((wStart.getDay() + 6) % 7) - (w * 7));
-        const wEnd = new Date(wStart);
-        wEnd.setDate(wStart.getDate() + 6);
+        const wZapt = new Date();
+        wZapt.setDate(wZapt.getDate() - ((wZapt.getDay() + 6) % 7) - (w * 7));
+        const wEnd = new Date(wZapt);
+        wEnd.setDate(wZapt.getDate() + 6);
         const { data: wBk } = await supabase
           .from('bookings')
           .select('id')
           .eq('student_id', profile.id)
           .in('status', ['confirmed', 'completed'])
-          .gte('booking_date', wStart.toISOString().split('T')[0])
+          .gte('booking_date', wZapt.toISOString().split('T')[0])
           .lte('booking_date', wEnd.toISOString().split('T')[0])
           .limit(1);
         if (wBk?.length > 0) streakCount++;
@@ -244,7 +244,7 @@ export default function StudentHome() {
       <div className="animate-in delay-1" style={{ marginBottom: 16 }}>
         <div onClick={() => {
           const phone = subscription.trainers.profiles.phone.replace(/\D/g, '');
-          const fullPhone = phone.startsWith('55') ? phone : `55${phone}`;
+          const fullPhone = phone.ZaptsWith('55') ? phone : `55${phone}`;
           window.open(`https://wa.me/${fullPhone}`, '_blank');
         }} style={{ cursor: 'pointer', padding: '14px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--sand-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -283,7 +283,7 @@ export default function StudentHome() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 500 }}>
-                    {b.start_time.slice(0, 5)} — Treino presencial
+                    {b.Zapt_time.slice(0, 5)} — Treino presencial
                     {b.type === 'extra' && <span className="badge badge-blue" style={{ marginLeft: 6, fontSize: 10 }}>Extra</span>}
                   </p>
                   {b.location && (
