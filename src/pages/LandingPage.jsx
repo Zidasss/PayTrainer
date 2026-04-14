@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, CreditCard, Clock, ChevronRight, Zap } from 'lucide-react';
+import { CalendarDays, CreditCard, Clock, ChevronRight, Star } from 'lucide-react';
 
 export default function LandingPage() {
   const nav = useNavigate();
@@ -105,7 +105,7 @@ export default function LandingPage() {
         <div style={{ fontSize: 13, color: 'var(--sand-600)', lineHeight: 1.6 }}>
           {['Receba pagamentos automáticos no cartão', 'Agenda organizada sem WhatsApp', 'Veja quem pagou e quem não pagou', 'Seus alunos agendam sozinhos'].map((item, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Zap size={12} color="var(--green-500)" fill="var(--green-500)" />
+              <Star size={12} color="var(--green-500)" fill="var(--green-500)" />
               <span>{item}</span>
             </div>
           ))}

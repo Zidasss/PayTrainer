@@ -15,7 +15,8 @@
     "lucide-react": "^0.400.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.0"
+    "react-router-dom": "^6.26.0",
+    "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

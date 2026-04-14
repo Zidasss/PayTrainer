@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT, ConfirmModal } from '../components/Shared';
 import { NotificationBell } from '../components/NotificationBell';
-import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, Settings, Zap } from 'lucide-react';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, Settings, Star } from 'lucide-react';
 
 export default function TrainerHome() {
   const { profile } = useAuth();
@@ -217,7 +217,7 @@ useEffect(() => {
 
       {/* Public profile link */}
         <div className="animate-in delay-2 card" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-          <Zap size={18} color="var(--green-500)" />
+          <Star size={18} color="var(--green-500)" />
           <div style={{ flex: 1 }}>
             <p style={{ fontSize: 13, fontWeight: 500 }}>Agenda pública</p>
             <p style={{ fontSize: 11, color: 'var(--sand-400)', wordBreak: 'break-all' }}>
