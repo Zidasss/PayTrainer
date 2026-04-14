@@ -244,7 +244,7 @@ export default function StudentHome() {
       <div className="animate-in delay-1" style={{ marginBottom: 16 }}>
         <div onClick={() => {
           const phone = subscription.trainers.profiles.phone.replace(/\D/g, '');
-          const fullPhone = phone.StartsWith('55') ? phone : `55${phone}`;
+          const fullPhone = phone.startsWith('55') ? phone : `55${phone}`;
           window.open(`https://wa.me/${fullPhone}`, '_blank');
         }} style={{ cursor: 'pointer', padding: '14px 18px', borderRadius: 'var(--radius-md)', border: '1px solid var(--sand-100)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
