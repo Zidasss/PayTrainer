@@ -66,9 +66,18 @@ export function AuthProvider({ children }) {
 
     if (role === 'trainer') {
       // Generate referral code
-      const code = resolvedFullName.replace(/\s+/g, '').substring(0, 5).toUpperCase() +
-        '-' + new Date().getFullYear().toString().slice(2) +
-        String(new Date().getMonth() + 1).padStart(2, '0');
+      let code;
+      let attempts = 0;
+      while (attempts < 5) {
+        code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const { data: existing } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('referral_code', code)
+          .maybeSingle();
+        if (!existing) break;
+        attempts++;
+      }
 
       await supabase.from('trainers').insert({
         id: userId,
@@ -104,9 +113,18 @@ export function AuthProvider({ children }) {
     if (profileError) throw profileError;
 
     if (role === 'trainer') {
-      const code = fullName.replace(/\s+/g, '').substring(0, 5).toUpperCase() +
-        '-' + new Date().getFullYear().toString().slice(2) +
-        String(new Date().getMonth() + 1).padStart(2, '0');
+      let code;
+      let attempts = 0;
+      while (attempts < 5) {
+        code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const { data: existing } = await supabase
+          .from('trainers')
+          .select('id')
+          .eq('referral_code', code)
+          .maybeSingle();
+        if (!existing) break;
+        attempts++;
+      }
 
       await supabase.from('trainers').insert({
         id: userId,
