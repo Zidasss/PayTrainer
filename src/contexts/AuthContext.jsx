@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
     if (!session?.user) return;
     const userId = session.user.id;
     const resolvedFullName = fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
-    const slug = resolvedFullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+    const slug = resolvedFullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '') + '-' + Math.random().toString(36).substring(2, 6);
 
     const { error: profileError } = await supabase.from('profiles').insert({
       id: userId,
@@ -105,7 +105,7 @@ export function AuthProvider({ children }) {
     if (authError) throw authError;
 
     const userId = authData.user.id;
-    const slug = fullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
+    const slug = fullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '') + '-' + Math.random().toString(36).substring(2, 6);
 
     const { error: profileError } = await supabase.from('profiles').insert({
       id: userId, role, full_name: fullName, phone, slug,
