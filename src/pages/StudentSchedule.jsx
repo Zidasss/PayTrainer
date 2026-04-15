@@ -41,7 +41,7 @@ export default function StudentSchedule() {
 
     const { data: trainerData } = await supabase
       .from('trainers')
-      .select('extra_class_price')
+      .select('extra_class_price, allow_extra_classes')
       .eq('id', sub.trainer_id)
       .single();
     if (trainerData?.extra_class_price) setExtraPrice(trainerData.extra_class_price);
@@ -72,7 +72,7 @@ export default function StudentSchedule() {
     const { data: count } = await supabase.rpc('get_weekly_booking_count', {
       p_student_id: profile.id,
       p_trainer_id: sub.trainer_id,
-      p_week_Start: monday,
+      p_week_start: monday,
     });
     setWeeklyCount(count || 0);
     setSelected([]);
@@ -499,7 +499,7 @@ async function cancelBooking(bookingId) {
           })}
 
           {/* Cancellation policy notice */}
-          <div style={{ display: 'flex', alignItems: 'flex-Start', gap: 8, padding: '10px 0', marginTop: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 0', marginTop: 4 }}>
             <AlertTriangle size={14} color="var(--sand-400)" style={{ marginTop: 2, flexShrink: 0 }} />
             <p style={{ fontSize: 11, color: 'var(--sand-400)', lineHeight: 1.5 }}>
               Cancelamentos devem ser feitos com no mínimo 10 horas de antecedência. Aulas não canceladas a tempo não serão devolvidas ao saldo semanal.
