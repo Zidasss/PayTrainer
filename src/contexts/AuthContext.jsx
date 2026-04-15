@@ -27,11 +27,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*, trainers(*), subscriptions(*, plans(*))')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
+
+    console.log('fetchProfile result:', { data, error, userId });
 
     if (data) {
       // Merge trainer data into profile for easy access
