@@ -27,29 +27,44 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function fetchProfile(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*, trainers(*), subscriptions(*, plans(*))')
-      .eq('id', userId)
-      .maybeSingle();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    console.log('fetchProfile result:', { data, error, userId });
+      console.log('fetchProfile result:', { data, error: error?.message, userId });
 
-    if (data) {
-      // Merge trainer data into profile for easy access
-      if (data.trainers) {
-        data.referral_code = data.trainers.referral_code;
-        data.free_fee_until = data.trainers.free_fee_until;
-        data.stripe_onboarding_complete = data.trainers.stripe_onboarding_complete;
+      if (data) {
+        if (data.role === 'trainer') {
+          const { data: trainer } = await supabase
+            .from('trainers')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+          if (trainer) {
+            data.trainers = trainer;
+            data.referral_code = trainer.referral_code;
+            data.free_fee_until = trainer.free_fee_until;
+            data.stripe_onboarding_complete = trainer.stripe_onboarding_complete;
+          }
+        }
+
+        const { data: subs } = await supabase
+          .from('subscriptions')
+          .select('*, plans(*)')
+          .eq(data.role === 'trainer' ? 'trainer_id' : 'student_id', userId)
+          .limit(5);
+        if (subs) data.subscriptions = subs;
+
+        setProfile(data);
+        setNeedsProfileSetup(false);
+      } else {
+        setNeedsProfileSetup(true);
+        setProfile(null);
       }
-      setProfile(data);
-      setNeedsProfileSetup(false);
-    } else {
-      setNeedsProfileSetup(true);
-      setProfile(null);
+      setLoading(false);
     }
-    setLoading(false);
-  }
 
   async function setupOAuthProfile({ role, fullName, phone, referralCode }) {
     if (!session?.user) return;
