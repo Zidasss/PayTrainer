@@ -113,7 +113,8 @@ export default function TrainerFinance() {
   }
 
   const totalRevenue = students.reduce((sum, s) => sum + (s.plans?.price_cents || 0), 0);
-  const platformFee = Math.round(totalRevenue * 0.08);
+  const feeRate = profile?.free_fee_until && new Date(profile.free_fee_until) > new Date() ? 0.04 : 0.08;
+  const platformFee = Math.round(totalRevenue * feeRate);
   const netRevenue = totalRevenue - platformFee;
 
   const monthPayments = payments.filter(p => p.status === 'succeeded');
@@ -151,7 +152,7 @@ export default function TrainerFinance() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.15)', fontSize: 13, opacity: 0.8 }}>
           <span>Bruto: {formatBRL(totalRevenue)}</span>
-          <span>Taxa (8%): {formatBRL(platformFee)}</span>
+          <span>Taxa ({profile?.free_fee_until && new Date(profile.free_fee_until) > new Date() ? '4%' : '8%'}): {formatBRL(platformFee)}</span>
         </div>
       </div>
 

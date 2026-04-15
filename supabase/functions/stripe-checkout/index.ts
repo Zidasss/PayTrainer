@@ -58,6 +58,23 @@ async function stripeGet(endpoint: string) {
   return data;
 }
 
+// Get the fee percentage for a trainer (checks referral discount)
+async function getTrainerFeePercent(supabase: any, trainerId: string): Promise<number> {
+  const { data: trainer } = await supabase
+    .from('trainers')
+    .select('free_fee_until')
+    .eq('id', trainerId)
+    .single();
+
+  if (trainer?.free_fee_until) {
+    const freeUntil = new Date(trainer.free_fee_until);
+    if (freeUntil > new Date()) {
+      return 4; // Reduced fee during referral reward period
+    }
+  }
+  return 8; // Default fee
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -120,6 +137,21 @@ serve(async (req) => {
           .from('trainers')
           .update({ stripe_onboarding_complete: true })
           .eq('id', user.id);
+
+        // Check if this trainer was referred — activate referral reward for referrer
+        const { data: referral } = await supabase
+          .from('referrals')
+          .select('*')
+          .eq('referred_id', user.id)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (referral) {
+          // Mark referral as active
+          await supabase.from('referrals')
+            .update({ status: 'active', activated_at: new Date().toISOString() })
+            .eq('id', referral.id);
+        }
       }
 
       return new Response(JSON.stringify({ complete, account_id: trainer.stripe_account_id }), {
@@ -165,6 +197,9 @@ serve(async (req) => {
       const trainerStripeId = trainer?.stripe_account_id;
       if (!trainerStripeId) throw new Error('Trainer not set up for payments');
 
+      // Get dynamic fee percentage
+      const feePercent = await getTrainerFeePercent(supabase, trainer_id);
+
       let { data: sub } = await supabase
         .from('subscriptions')
         .select('stripe_customer_id')
@@ -208,11 +243,12 @@ serve(async (req) => {
         'payment_method_types[0]': 'card',
         'line_items[0][price]': stripePriceId,
         'line_items[0][quantity]': '1',
-        'subscription_data[application_fee_percent]': '8',
+        'subscription_data[application_fee_percent]': String(feePercent),
         'subscription_data[transfer_data][destination]': trainerStripeId,
         'subscription_data[metadata][student_id]': user.id,
         'subscription_data[metadata][trainer_id]': trainer_id,
         'subscription_data[metadata][plan_id]': plan.id,
+        'subscription_data[metadata][fee_percent]': String(feePercent),
         success_url: `${params.returnUrl}/student/payment?success=true`,
         cancel_url: `${params.returnUrl}/student/payment?canceled=true`,
         'metadata[student_id]': user.id,
@@ -259,7 +295,10 @@ serve(async (req) => {
       if (!trainer?.stripe_account_id) throw new Error('Trainer not set up');
 
       const amount = trainer.extra_class_price;
-      const platformFee = Math.round(amount * 0.08);
+
+      // Get dynamic fee percentage for extra classes too
+      const feePercent = await getTrainerFeePercent(supabase, trainer_id);
+      const platformFee = Math.round(amount * (feePercent / 100));
 
       const session = await stripe('/checkout/sessions', {
         mode: 'payment',
@@ -278,6 +317,94 @@ serve(async (req) => {
       });
 
       return new Response(JSON.stringify({ url: session.url }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ─── Validate referral code ───
+    if (action === 'validate_referral') {
+      const { code } = params;
+
+      const { data: trainer } = await supabase
+        .from('trainers')
+        .select('id, referral_code, profiles(full_name)')
+        .eq('referral_code', code.toUpperCase())
+        .single();
+
+      if (!trainer) {
+        return new Response(JSON.stringify({ valid: false }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        valid: true,
+        referrer_id: trainer.id,
+        referrer_name: trainer.profiles?.full_name,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ─── Apply referral after signup ───
+    if (action === 'apply_referral') {
+      const { referral_code } = params;
+
+      const { data: referrer } = await supabase
+        .from('trainers')
+        .select('id, referral_code')
+        .eq('referral_code', referral_code.toUpperCase())
+        .single();
+
+      if (!referrer || referrer.id === user.id) {
+        return new Response(JSON.stringify({ success: false, error: 'Invalid code' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Save referral
+      await supabase.from('trainers')
+        .update({ referred_by: referrer.id })
+        .eq('id', user.id);
+
+      await supabase.from('referrals').insert({
+        referrer_id: referrer.id,
+        referred_id: user.id,
+        status: 'pending',
+      });
+
+      // Extend from current end date, max 6 months from now
+      const { data: referrerTrainer } = await supabase
+        .from('trainers')
+        .select('free_fee_until')
+        .eq('id', referrer.id)
+        .single();
+
+      const maxLimit = new Date();
+      maxLimit.setMonth(maxLimit.getMonth() + 6);
+
+      const baseDate = referrerTrainer?.free_fee_until && new Date(referrerTrainer.free_fee_until) > new Date()
+        ? new Date(referrerTrainer.free_fee_until)
+        : new Date();
+      const freeUntil = new Date(baseDate);
+      freeUntil.setMonth(freeUntil.getMonth() + 2);
+
+      // Cap at 6 months from today
+      if (freeUntil > maxLimit) {
+        freeUntil.setTime(maxLimit.getTime());
+      }
+
+      await supabase.from('trainers')
+        .update({ free_fee_until: freeUntil.toISOString() })
+        .eq('id', referrer.id);
+
+      // Mark referral as rewarded
+      await supabase.from('referrals')
+        .update({ status: 'rewarded', reward_applied: true })
+        .eq('referrer_id', referrer.id)
+        .eq('referred_id', user.id);
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

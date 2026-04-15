@@ -8,6 +8,7 @@ export default function OAuthSetup() {
   const [step, setStep] = useState('role'); // 'role' | 'phone'
   const [role, setRole] = useState(null);
   const [phone, setPhone] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -30,7 +31,7 @@ export default function OAuthSetup() {
     setLoading(true);
     setError('');
     try {
-      await setupOAuthProfile({ role, fullName: userName, phone: phone || null });
+      await setupOAuthProfile({ role, fullName: userName, phone: phone || null, referralCode: referralCode || null });
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -122,6 +123,15 @@ export default function OAuthSetup() {
           Seu {role === 'trainer' ? 'aluno' : 'personal'} poderá ver este número para contato.
         </p>
       </div>
+
+      {role === 'trainer' && (
+        <div className="animate-in delay-1" style={{ marginBottom: 16 }}>
+          <label className="input-label">Código de indicação (opcional)</label>
+          <input className="input-field" value={referralCode}
+            onChange={e => setReferralCode(e.target.value.toUpperCase())}
+            placeholder="Ex: ZIDAS-2604" style={{ textTransform: 'uppercase' }} />
+        </div>
+      )}
 
       {error && <p style={{ color: 'var(--coral)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
 

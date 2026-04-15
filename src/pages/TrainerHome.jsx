@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase, callStripe } from '../lib/supabase';
 import { BottomNav, Avatar, formatBRL, DAYS_PT, ConfirmModal } from '../components/Shared';
 import { NotificationBell } from '../components/NotificationBell';
-import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, Settings, Star } from 'lucide-react';
+import { AlertCircle, ChevronRight, MapPin, Check, X, ExternalLink, Link2, ClipboardList, Settings, Star, Users } from 'lucide-react';
 
 export default function TrainerHome() {
   const { profile } = useAuth();
@@ -235,6 +235,45 @@ useEffect(() => {
           {copiedPublic ? '✓ Copiado' : 'Copiar'}
         </button>
       </div>
+
+      {/* Referral program */}
+      <div className="animate-in delay-2 card" style={{ marginTop: 8, background: 'linear-gradient(135deg, #E8F5EF 0%, #f0faf5 100%)', border: '1px solid var(--green-200)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--green-500)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Users size={20} color="white" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-800)' }}>Indique um personal</p>
+            <p style={{ fontSize: 11, color: 'var(--green-600)' }}>Ganhe 2 meses com taxa reduzida (4%)</p>
+          </div>
+        </div>
+        <div style={{ marginTop: 12, padding: '10px 14px', background: 'white', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <code style={{ fontSize: 15, fontWeight: 700, color: 'var(--green-700)', letterSpacing: 1 }}>
+            {profile?.referral_code || '...'}
+          </code>
+          <button className="btn btn-ghost" style={{ width: 'auto', padding: '6px 14px', fontSize: 12 }}
+            onClick={() => {
+              const msg = `Ei! Estou usando o Stride para gerenciar meus alunos e pagamentos. Use meu código ${profile?.referral_code} no cadastro e comece grátis: ${window.location.origin}/auth?mode=signup&ref=${profile?.referral_code}`;
+              if (navigator.share) {
+                navigator.share({ title: 'Stride', text: msg }).catch(() => navigator.clipboard.writeText(msg));
+              } else {
+                navigator.clipboard.writeText(msg);
+              }
+            }}>
+            Compartilhar
+          </button>
+        </div>
+      </div>
+
+      {/* Reduced fee badge */}
+      {profile?.free_fee_until && new Date(profile.free_fee_until) > new Date() && (
+        <div className="animate-in delay-2" style={{ marginTop: 8, padding: '10px 14px', background: 'var(--green-50)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Star size={16} color="var(--green-500)" />
+          <span style={{ fontSize: 13, color: 'var(--green-700)' }}>
+            Taxa reduzida (4%) até {new Date(profile.free_fee_until).toLocaleDateString('pt-BR')}
+          </span>
+        </div>
+      )}
 
       {/* Today's sessions */}
       <div className="animate-in delay-2" style={{ marginTop: 16 }}>

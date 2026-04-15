@@ -48,6 +48,7 @@ export default function AuthPage() {
   const [resetSent, setResetSent] = useState(false);
   const [socialLoading, setSocialLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
   useEffect(() => {
     if (session && profile) {
@@ -58,6 +59,12 @@ export default function AuthPage() {
       }
     }
   }, [session, profile]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, []);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -89,7 +96,14 @@ export default function AuthPage() {
             return;
           }
         }
-        await signUp({ ...form, role });
+        await signUp({
+          email: form.email,
+          password: form.password,
+          fullName: form.fullName,
+          role,
+          phone: form.phone,
+          referralCode: referralCode || null,
+        });
         const redirect = sessionStorage.getItem('joinRedirect');
         if (redirect) { sessionStorage.removeItem('joinRedirect'); setTimeout(() => nav(redirect), 500); }
       }
@@ -309,6 +323,18 @@ export default function AuthPage() {
         </div>
 
         {mode === 'signup' && <PasswordStrength password={form.password} />}
+
+        {role === 'trainer' && (
+          <div className="animate-in delay-3" style={{ marginBottom: 14 }}>
+            <label className="input-label">Código de indicação (opcional)</label>
+            <input className="input-field" value={referralCode}
+              onChange={e => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="Ex: ZIDAS-2604" style={{ textTransform: 'uppercase' }} />
+            <p style={{ fontSize: 11, color: 'var(--sand-400)', marginTop: 4 }}>
+              Recebeu um código de outro personal? Cole aqui.
+            </p>
+          </div>
+        )}
         
         {mode === 'login' && (
           <div className="animate-in delay-3" style={{ textAlign: 'right', marginBottom: 4 }}>

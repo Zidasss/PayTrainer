@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { callStripe } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
@@ -33,54 +34,93 @@ export function AuthProvider({ children }) {
       .single();
 
     if (data) {
+      // Merge trainer data into profile for easy access
+      if (data.trainers) {
+        data.referral_code = data.trainers.referral_code;
+        data.free_fee_until = data.trainers.free_fee_until;
+        data.stripe_onboarding_complete = data.trainers.stripe_onboarding_complete;
+      }
       setProfile(data);
       setNeedsProfileSetup(false);
     } else {
-      // OAuth user without profile - needs setup
       setNeedsProfileSetup(true);
       setProfile(null);
     }
     setLoading(false);
   }
 
-  async function setupOAuthProfile({ role, fullName, phone }) {
+  async function setupOAuthProfile({ role, fullName, phone, referralCode }) {
     if (!session?.user) return;
     const userId = session.user.id;
     const resolvedFullName = fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
+    const slug = resolvedFullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
 
     const { error: profileError } = await supabase.from('profiles').insert({
       id: userId,
       role,
       full_name: resolvedFullName,
       phone: phone || null,
-      slug: resolvedFullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, ''),
+      slug,
     });
     if (profileError) throw profileError;
 
     if (role === 'trainer') {
-      await supabase.from('trainers').insert({ id: userId });
+      // Generate referral code
+      const code = resolvedFullName.replace(/\s+/g, '').substring(0, 5).toUpperCase() +
+        '-' + new Date().getFullYear().toString().slice(2) +
+        String(new Date().getMonth() + 1).padStart(2, '0');
+
+      await supabase.from('trainers').insert({
+        id: userId,
+        referral_code: code,
+      });
+
+      // Apply referral code if provided
+      if (referralCode) {
+        try {
+          await callStripe('apply_referral', { referral_code: referralCode });
+        } catch (e) {
+          console.log('Referral code error:', e.message);
+        }
+      }
     }
 
     setNeedsProfileSetup(false);
     await fetchProfile(userId);
   }
 
-  async function signUp({ email, password, fullName, role, phone }) {
+  async function signUp({ email, password, fullName, role, phone, referralCode }) {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email, password,
     });
     if (authError) throw authError;
 
     const userId = authData.user.id;
+    const slug = fullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '');
 
     const { error: profileError } = await supabase.from('profiles').insert({
-      id: userId, role, full_name: fullName, phone,
-      slug: fullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, ''),
+      id: userId, role, full_name: fullName, phone, slug,
     });
     if (profileError) throw profileError;
 
     if (role === 'trainer') {
-      await supabase.from('trainers').insert({ id: userId });
+      const code = fullName.replace(/\s+/g, '').substring(0, 5).toUpperCase() +
+        '-' + new Date().getFullYear().toString().slice(2) +
+        String(new Date().getMonth() + 1).padStart(2, '0');
+
+      await supabase.from('trainers').insert({
+        id: userId,
+        referral_code: code,
+      });
+
+      // Apply referral code if provided
+      if (referralCode) {
+        try {
+          await callStripe('apply_referral', { referral_code: referralCode });
+        } catch (e) {
+          console.log('Referral code error:', e.message);
+        }
+      }
     }
 
     await fetchProfile(userId);
