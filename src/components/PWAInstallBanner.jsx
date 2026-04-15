@@ -60,11 +60,11 @@ export default function PWAInstallBanner() {
         <Download size={22} color="white" />
       </div>
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 14, fontWeight: 600 }}>Instalar Stride</p>
+        <p style={{ fontSize: 14, fontWeight: 600 }}>Adicionar Stride à tela inicial</p>
         {isIOS ? (
           <p style={{ fontSize: 12, color: 'var(--sand-500)', marginTop: 2, lineHeight: 1.4 }}>
-            Toque em <span style={{ fontWeight: 500 }}>Compartilhar</span> → <span style={{ fontWeight: 500 }}>Tela de Início</span>
-          </p>
+          Toque em <span style={{ fontWeight: 500 }}>Compartilhar</span> → <span style={{ fontWeight: 500 }}>Tela de Início</span>
+        </p>
         ) : (
           <p style={{ fontSize: 12, color: 'var(--sand-500)', marginTop: 2 }}>
             Acesse rápido pela tela inicial
@@ -77,7 +77,7 @@ export default function PWAInstallBanner() {
           borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600,
           cursor: 'pointer', flexShrink: 0,
         }}>
-          Instalar
+          Adicionar
         </button>
       )}
       <div onClick={dismiss} style={{ cursor: 'pointer', padding: 4, flexShrink: 0 }}>

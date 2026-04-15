@@ -202,17 +202,29 @@ async function cancelBooking(bookingId) {
         };
       });
 
-      // Remove any canceled bookings for these slots first
+      // Remove canceled and pending bookings for these slots first
       for (const ins of inserts) {
         await supabase.from('bookings')
           .delete()
           .eq('trainer_id', ins.trainer_id)
           .eq('booking_date', ins.booking_date)
           .eq('start_time', ins.start_time)
-          .eq('status', 'canceled');
+          .in('status', ['canceled', 'pending']);
+      }
+
+      // Also remove old bookings from THIS student for these slots
+      for (const ins of inserts) {
+        await supabase.from('bookings')
+          .delete()
+          .eq('student_id', ins.student_id)
+          .eq('trainer_id', ins.trainer_id)
+          .eq('booking_date', ins.booking_date)
+          .eq('start_time', ins.start_time);
       }
 
       const { error } = await supabase.from('bookings').insert(inserts);
+      if (error) throw error;
+
       await createNotification({
         userId: subscription.trainer_id,
         title: 'Nova aula agendada',
