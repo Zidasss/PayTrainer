@@ -55,41 +55,45 @@ export function AuthProvider({ children }) {
     const resolvedFullName = fullName || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
     const slug = resolvedFullName.toLowerCase().replace(/\s+/g, '-').replace(/\./g, '') + '-' + Math.random().toString(36).substring(2, 6);
 
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id: userId,
-      role,
-      full_name: resolvedFullName,
-      phone: phone || null,
-      slug,
-    });
-    if (profileError) throw profileError;
+    // Check if profile already exists
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: userId,
+        role,
+        full_name: resolvedFullName,
+        phone: phone || null,
+        slug,
+      });
+      if (profileError) throw profileError;
+    }
 
     if (role === 'trainer') {
-      // Generate referral code
-      let code;
-      let attempts = 0;
-      while (attempts < 5) {
-        code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const { data: existing } = await supabase
-          .from('trainers')
-          .select('id')
-          .eq('referral_code', code)
-          .maybeSingle();
-        if (!existing) break;
-        attempts++;
+      const { data: existingTrainer } = await supabase
+        .from('trainers')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!existingTrainer) {
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const { error: trainerError } = await supabase.from('trainers').insert({
+          id: userId,
+          referral_code: code,
+        });
+        if (trainerError) console.log('Trainer insert error:', trainerError);
       }
 
-      await supabase.from('trainers').upsert({
-        id: userId,
-        referral_code: code,
-      });
-
-      // Apply referral code if provided
       if (referralCode) {
         try {
           await callStripe('apply_referral', { referral_code: referralCode });
         } catch (e) {
-          console.log('Referral code error:', e.message);
+          console.log('Referral error:', e.message);
         }
       }
     }
