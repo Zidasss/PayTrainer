@@ -31,10 +31,13 @@ export default function OAuthSetup() {
     setLoading(true);
     setError('');
     try {
+      console.log('Calling setupOAuthProfile with:', { role, userName, phone, referralCode });
       await setupOAuthProfile({ role, fullName: userName, phone: phone || null, referralCode: referralCode || null });
     } catch (err) {
+      console.log('Setup error:', err.message);
       setError(err.message);
       setLoading(false);
+      return;
     }
   }
 
